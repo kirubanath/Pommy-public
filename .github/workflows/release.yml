@@ -1,0 +1,81 @@
+name: Release
+
+# Builds the Swift app and publishes Pommy.app.zip as a downloadable
+# release asset whenever a version tag is pushed (e.g. `v1.2.0`).
+#
+# Manual trigger is also available from the Actions tab via workflow_dispatch.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to release as (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Pommy.app
+    runs-on: macos-14
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Build Pommy.app
+        env:
+          POMMY_SKIP_INSTALL: '1'
+        run: |
+          cd swift
+          ./build.sh
+
+      - name: Zip the app bundle
+        run: |
+          cd swift/dist
+          ditto -c -k --keepParent Pommy.app Pommy.app.zip
+          shasum -a 256 Pommy.app.zip > Pommy.app.zip.sha256
+          ls -lh
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [[ -n "${{ inputs.tag }}" ]]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.tag.outputs.name }}
+          body: |
+            > *"A new version. Apparently I have been improved. I will not comment on what that implies about before."*
+            > — Pommy
+
+            **How to install:**
+            1. Download `Pommy.app.zip` below
+            2. Unzip it
+            3. Drag `Pommy.app` into `/Applications`
+            4. Open it. I'll say hello.
+
+            Verify the download with `Pommy.app.zip.sha256` if you're into that sort of thing.
+
+            ---
+          generate_release_notes: true
+          files: |
+            swift/dist/Pommy.app.zip
+            swift/dist/Pommy.app.zip.sha256

@@ -1,0 +1,34 @@
+# Build output (Python legacy + Swift)
+build/
+dist/
+.venv/
+.venv-build/
+pommy.egg-info/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Generated app icon (rebuilt by swift/build.sh)
+swift/dist/AppIcon.icns
+
+# Credentials — never commit
+config/notion.json
+
+# macOS
+.DS_Store
+*.xcuserstate
+
+# Editors / IDEs
+.idea/
+.vscode/
+.cursor/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local task files / scratch
+tasks/
