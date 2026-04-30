@@ -9,7 +9,7 @@
   </p>
 </blockquote>
 
-Hi. I'm Pommy. I keep time while you work, breathe with you between sessions, and quietly log everything to your Notion workspace.
+Hi. I'm Pommy. I keep time while you work, breathe with you between sessions, and remember everything you've done so you can pretend it was on purpose. Plug me into Notion if you want me to follow you across devices. Don't, and I'll sulk locally. Either way, I'm fine. I'm always fine.
 
 This is what I do now.
 
@@ -51,15 +51,18 @@ The menubar shows remaining minutes. I am there. I am always there.
   </p>
 </blockquote>
 
-## Notion
+## Notion (optional, like flossing)
 
-I can log every session to your Notion database. One-time setup, then I remember everything so you don't have to.
+I do not require Notion. I am a self-sufficient tomato. Your sessions live in `~/Library/Application Support/Pommy/` and we never speak of them again.
 
-Instructions: [NOTION.md](docs/NOTION.md)
+But if you connect Notion, I get *ambitious*. I sync across your devices. I fill in a tidy little database (you build it, I just move in) and become the kind of tomato that has receipts.
 
-Your sessions live in `~/Library/Application Support/Pommy/`.
+- **Without Notion** — just me, your laptop, and the quiet satisfaction of a streak nobody can verify.
+- **With Notion** — cross-device sync and a database you can scroll through on your phone at 2am to feel something.
 
-I do not send your data anywhere. I am a tomato, not a startup.
+You make the database, generate a token, invite me to the page. I do the rest. Full instructions, should you choose ambition: [NOTION.md](docs/NOTION.md)
+
+I don't send your data anywhere you didn't ask me to. I am a tomato, not a startup.
 
 ## Contributing
 

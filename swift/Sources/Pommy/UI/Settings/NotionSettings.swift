@@ -4,14 +4,13 @@ import SwiftUI
 struct NotionSettings: View {
     @Environment(AppState.self) private var appState
 
-    @State private var token:      String = ""
-    @State private var databaseID: String = ""
-    @State private var trackerURL: String = ""
+    @State private var token:        String = ""
+    @State private var databaseLink: String = ""
+    @State private var databaseID:   String = ""
 
-    @State private var editingToken:      Bool = false
-    @State private var editingDatabaseID: Bool = false
-    @State private var editingTrackerURL: Bool = false
-    @State private var editBuffer:        String = ""
+    @State private var editingToken:        Bool = false
+    @State private var editingDatabaseLink: Bool = false
+    @State private var editBuffer:          String = ""
 
     @State private var validating:       Bool    = false
     @State private var validationResult: String? = nil
@@ -44,14 +43,15 @@ struct NotionSettings: View {
 
     private var statusBanner: some View {
         HStack(spacing: 6) {
-            let dotColor: Color = (token.isEmpty || databaseID.isEmpty)
+            let notSetUp = token.isEmpty || databaseID.isEmpty
+            let dotColor: Color = notSetUp
                 ? .orange
                 : (isValid ? .green : Color.secondary.opacity(0.5))
             Circle()
                 .fill(dotColor)
                 .frame(width: 6, height: 6)
                 .campGlow(active: isValid, tint: .green, outerRadius: 6, innerRadius: 3, outerOpacity: 0.55, innerOpacity: 0.40)
-            Text(token.isEmpty || databaseID.isEmpty
+            Text(notSetUp
                  ? "Not set up yet"
                  : (isValid ? "Connected" : "Saved · give it a poke to test"))
                 .font(.pommyLabel)
@@ -80,31 +80,27 @@ struct NotionSettings: View {
             }
             PommyRowDivider()
             credentialRow(
-                label:    "Database ID",
-                value:    databaseID,
+                label:    "Database link",
+                value:    databaseLinkDisplay,
                 isSecret: false,
-                isEditing: $editingDatabaseID
+                isEditing: $editingDatabaseLink
             ) {
-                editBuffer        = databaseID
-                editingDatabaseID = true
+                editBuffer          = databaseLink
+                editingDatabaseLink = true
             } onSave: {
-                databaseID = editBuffer.trimmingCharacters(in: .whitespaces)
-                persistCredentials()
-            }
-            PommyRowDivider()
-            credentialRow(
-                label:    "Tracker page URL",
-                value:    trackerURL,
-                isSecret: false,
-                isEditing: $editingTrackerURL
-            ) {
-                editBuffer        = trackerURL
-                editingTrackerURL = true
-            } onSave: {
-                trackerURL = editBuffer.trimmingCharacters(in: .whitespaces)
+                databaseLink = editBuffer.trimmingCharacters(in: .whitespaces)
+                databaseID   = NotionCredentials.extractDatabaseID(from: databaseLink) ?? ""
                 persistCredentials()
             }
         }
+    }
+
+    /// Shows the link itself when valid, or a hint about parsing when the
+    /// user has typed something we couldn't extract a database ID from.
+    private var databaseLinkDisplay: String {
+        if databaseLink.isEmpty { return "" }
+        if databaseID.isEmpty   { return "⚠︎ Couldn't find a database ID in this link" }
+        return databaseLink
     }
 
     // MARK: - Validate card
@@ -280,9 +276,10 @@ struct NotionSettings: View {
 
     private func loadCredentials() {
         if let creds = appState.credentials {
-            token      = creds.token
-            databaseID = creds.database_id
-            trackerURL = creds.page_url
+            token        = creds.token
+            databaseID   = creds.database_id
+            // Prefer the saved page URL; fall back to bare ID if that's all we have.
+            databaseLink = creds.page_url.isEmpty ? creds.database_id : creds.page_url
         }
     }
 
@@ -290,7 +287,7 @@ struct NotionSettings: View {
         let creds = NotionCredentials(
             token:       token,
             database_id: databaseID,
-            page_url:    trackerURL
+            page_url:    databaseLink
         )
         try? NotionCredentialsStore.save(creds)
         appState.credentials = creds
