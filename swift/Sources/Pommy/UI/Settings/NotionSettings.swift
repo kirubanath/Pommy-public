@@ -275,11 +275,20 @@ struct NotionSettings: View {
     // MARK: - Logic
 
     private func loadCredentials() {
-        if let creds = appState.credentials {
-            token        = creds.token
-            databaseID   = creds.database_id
-            // Prefer the saved page URL; fall back to bare ID if that's all we have.
-            databaseLink = creds.page_url.isEmpty ? creds.database_id : creds.page_url
+        guard let creds = appState.credentials else { return }
+        token        = creds.token
+        databaseLink = creds.page_url.isEmpty ? creds.database_id : creds.page_url
+
+        // Re-derive the database ID from the saved link. Earlier builds had a
+        // parser bug that stored the `?v=…` view ID instead of the database
+        // ID; re-parsing on load auto-heals those installs.
+        if let parsed = NotionCredentials.extractDatabaseID(from: databaseLink) {
+            databaseID = parsed
+            if parsed != creds.database_id {
+                persistCredentials()
+            }
+        } else {
+            databaseID = creds.database_id
         }
     }
 

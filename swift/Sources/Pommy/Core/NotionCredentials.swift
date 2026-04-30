@@ -21,29 +21,34 @@ struct NotionCredentials: Codable, Equatable {
     /// Extracts the 32-char Notion database ID from a share/page URL.
     ///
     /// Accepts the full link a user copies from Notion, e.g.
-    /// `https://www.notion.so/workspace/MyDatabase-abcdef0123456789abcdef0123456789?v=…`
-    /// and returns `abcdef0123456789abcdef0123456789`.
+    /// `https://www.notion.so/workspace/MyDatabase-abcdef0123456789abcdef0123456789?v=feedface…`
+    /// and returns `abcdef0123456789abcdef0123456789` (NOT the `?v=…` view ID,
+    /// which is also a 32-char hex string).
     ///
     /// Also accepts a bare ID (with or without dashes) and normalizes it.
-    /// Returns nil if no 32-hex-char ID can be found.
+    /// Returns nil if no 32-hex-char ID can be found in the path portion.
     static func extractDatabaseID(from input: String) -> String? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        let stripped = trimmed.replacingOccurrences(of: "-", with: "")
+        // Drop the query string (`?v=…` view ID, `&p=…`, fragments, etc.)
+        // before scanning, otherwise we'd return the view ID.
+        let pathOnly = trimmed
+            .components(separatedBy: "?").first ?? trimmed
+        let noFragment = pathOnly
+            .components(separatedBy: "#").first ?? pathOnly
+
+        let stripped = noFragment.replacingOccurrences(of: "-", with: "")
         let hex = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
 
-        // Walk the string and find the last 32-char hex run.
+        // Walk the path and find the last 32-char hex run.
         let chars = Array(stripped)
+        guard chars.count >= 32 else { return nil }
         var lastMatch: String? = nil
-        var i = 0
-        while i <= chars.count - 32 {
+        for i in 0...(chars.count - 32) {
             let window = String(chars[i..<i+32])
             if window.unicodeScalars.allSatisfy({ hex.contains($0) }) {
                 lastMatch = window.lowercased()
-                i += 1
-            } else {
-                i += 1
             }
         }
         return lastMatch
