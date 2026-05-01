@@ -79,7 +79,7 @@ private struct FireflyJarView: View {
     }
 
     var body: some View {
-        TimelineView(.animation) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             GeometryReader { geo in
                 let w = geo.size.width
