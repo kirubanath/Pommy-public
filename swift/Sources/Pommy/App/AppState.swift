@@ -109,15 +109,45 @@ final class AppState {
 
         startAutoSync()
         startSystemFeedback()
+        observeAppLifecycle()
+    }
+
+    private func observeAppLifecycle() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pauseUITickers() }
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.resumeUITickers() }
+        }
+    }
+
+    func pauseUITickers() {
+        feedbackTimer?.invalidate()
+        feedbackTimer = nil
+    }
+
+    func resumeUITickers() {
+        guard feedbackTimer == nil else { return }
+        scheduleFeedbackTimer()
+        systemFeedback?.tick()
     }
 
     private func startSystemFeedback() {
-        let fb = SystemFeedback(appState: self)
-        systemFeedback = fb
+        systemFeedback = SystemFeedback(appState: self)
+        scheduleFeedbackTimer()
+    }
 
+    private func scheduleFeedbackTimer() {
         feedbackTimer?.invalidate()
         let t = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            // Timer fires on RunLoop.main, so we're already on the main thread.
             MainActor.assumeIsolated {
                 self?.systemFeedback?.tick()
             }
