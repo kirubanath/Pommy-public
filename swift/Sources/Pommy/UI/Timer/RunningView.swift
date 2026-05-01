@@ -11,6 +11,8 @@ struct RunningView: View {
     @State private var ringBreath:    Bool = false
     @State private var overflowGlow:  Bool = false
 
+    @State private var windowIsKey: Bool = true
+
     private static let ringDiameter: CGFloat = 220
     private static let lineWidth:    CGFloat = 12
 
@@ -36,6 +38,20 @@ struct RunningView: View {
                 .padding(.bottom, 28)
         }
         .padding(.horizontal, 24)
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            windowIsKey = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                ringBreath   = true
+                overflowGlow = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+            windowIsKey = false
+            withAnimation(.none) {
+                ringBreath   = false
+                overflowGlow = false
+            }
+        }
         .onAppear { startTerminusPulse() }
     }
 
@@ -150,11 +166,11 @@ struct RunningView: View {
                 endRadius: Self.ringDiameter * 0.55
             )
             .frame(width: Self.ringDiameter, height: Self.ringDiameter)
-            .scaleEffect(ringBreath && !isPaused ? 1.06 : 0.94)
+            .scaleEffect(ringBreath && !isPaused && windowIsKey ? 1.06 : 0.94)
             .opacity(isPaused ? 0.4 : 1.0)
             .blur(radius: 8)
             .animation(
-                .easeInOut(duration: 4).repeatForever(autoreverses: true),
+                windowIsKey ? .easeInOut(duration: 4).repeatForever(autoreverses: true) : .linear(duration: 0),
                 value: ringBreath
             )
 
@@ -167,9 +183,9 @@ struct RunningView: View {
             ringArc
                 .blur(radius: 12)
                 .opacity(isPaused ? 0.0 : 0.55)
-                .scaleEffect(appState.session.isOverflow && overflowGlow ? 1.05 : 1.0)
+                .scaleEffect(appState.session.isOverflow && overflowGlow && windowIsKey ? 1.05 : 1.0)
                 .animation(
-                    appState.session.isOverflow
+                    windowIsKey && appState.session.isOverflow
                         ? .easeInOut(duration: 1.5).repeatForever(autoreverses: true)
                         : .default,
                     value: overflowGlow
