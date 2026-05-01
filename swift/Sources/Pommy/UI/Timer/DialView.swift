@@ -79,7 +79,6 @@ struct DialView: View {
             .stroke(color, style: StrokeStyle(lineWidth: Self.lineWidth, lineCap: .round))
             .frame(width: Self.diameter, height: Self.diameter)
             .rotationEffect(.degrees(-90))
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: minutes)
             .animation(.easeInOut(duration: 0.25), value: sessionType)
     }
 
