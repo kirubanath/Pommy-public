@@ -40,12 +40,6 @@ struct PommyMascot: View {
     /// bounds without clipping.
     var chatty: Bool = false
 
-    @State private var breath: Bool = false
-    @State private var blink:  Bool = false
-    @State private var bounce: Bool = false
-    @State private var armWave: Bool = false
-    @State private var zPhase: Bool = false
-
     @State private var chatBeats: [PommyBeat] = []
     @State private var chatIndex: Int = 0
     @State private var chatTask:  Task<Void, Never>? = nil
@@ -69,38 +63,46 @@ struct PommyMascot: View {
     private let highlightCol = Color.white.opacity(0.25)
 
     var body: some View {
-        ZStack {
-            // Soft shadow under the body
-            Ellipse()
-                .fill(Color.black.opacity(0.35))
-                .frame(width: size * 0.75, height: size * 0.10)
-                .blur(radius: size * 0.04)
-                .offset(y: size * 0.50)
+        // Single timeline drives all continuous animation. When this view is
+        // offscreen the schedule pauses automatically — no timers to invalidate.
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            let blink = t.truncatingRemainder(dividingBy: 4.0) < 0.14
+            ZStack {
+                // Soft shadow under the body
+                Ellipse()
+                    .fill(Color.black.opacity(0.35))
+                    .frame(width: size * 0.75, height: size * 0.10)
+                    .blur(radius: size * 0.04)
+                    .offset(y: size * 0.50)
 
-            mascot
-                .frame(width: size, height: size)
-                .scaleEffect(scaleForBreath)
-                .rotationEffect(.degrees(headTilt))
-                .offset(y: bounceOffset)
-        }
-        .frame(width: size, height: size * 1.1)
-        // Only become tappable when chatty; otherwise let parents (e.g. a
-        // surrounding Button on a card) receive the tap.
-        .contentShape(Rectangle())
-        .allowsHitTesting(chatty)
-        .onTapGesture { if chatty { handleChatTap() } }
-        .popover(isPresented: chatPopoverBinding,
-                 attachmentAnchor: .rect(.bounds),
-                 arrowEdge: .top) {
-            if let beat = currentBeat {
-                PommyChatBubbleContent(text: beat.text, tint: cheekTint)
-                    .padding(4)
+                mascot(time: t, blink: blink)
+                    .frame(width: size, height: size)
+                    .scaleEffect(scaleForBreath(time: t))
+                    .rotationEffect(.degrees(headTilt))
+                    .offset(y: bounceOffset(time: t))
             }
+            .frame(width: size, height: size * 1.1)
+            // Only become tappable when chatty; otherwise let parents (e.g. a
+            // surrounding Button on a card) receive the tap.
+            .contentShape(Rectangle())
+            .allowsHitTesting(chatty)
+            .onTapGesture { if chatty { handleChatTap() } }
+            .popover(isPresented: chatPopoverBinding,
+                     attachmentAnchor: .rect(.bounds),
+                     arrowEdge: .top) {
+                if let beat = currentBeat {
+                    PommyChatBubbleContent(text: beat.text, tint: cheekTint)
+                        .padding(4)
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: chatIndex)
+            .animation(.easeInOut(duration: 0.25), value: isChatting)
         }
-        .animation(.easeInOut(duration: 0.25), value: chatIndex)
-        .animation(.easeInOut(duration: 0.25), value: isChatting)
-        .onAppear { startAnimations() }
-        .onDisappear { chatTask?.cancel() }
+        .onDisappear {
+            chatTask?.cancel()
+            chatTask = nil
+        }
     }
 
     private var currentBeat: PommyBeat? {
@@ -169,9 +171,9 @@ struct PommyMascot: View {
     }
 
     @ViewBuilder
-    private var mascot: some View {
+    private func mascot(time t: Double, blink: Bool) -> some View {
         ZStack {
-            arms
+            arms(time: t)
 
             ZStack {
                 // Body
@@ -203,7 +205,7 @@ struct PommyMascot: View {
                 cheek(offsetX: -size * 0.20)
                 cheek(offsetX:  size * 0.20)
 
-                face
+                face(blink: blink)
 
                 if displayPose == .focusHard {
                     headband
@@ -222,7 +224,7 @@ struct PommyMascot: View {
             stem
                 .offset(y: -size * 0.46)
 
-            zSparkles
+            zSparkles(time: t)
         }
     }
 
@@ -298,7 +300,7 @@ struct PommyMascot: View {
     }
 
     @ViewBuilder
-    private var face: some View {
+    private func face(blink: Bool) -> some View {
         let eyeOffsetY: CGFloat = -size * 0.04
 
         if displayPose == .focus || displayPose == .sleep || displayPose == .focusHard {
@@ -311,14 +313,14 @@ struct PommyMascot: View {
             sadEye(at: -size * 0.16, y: eyeOffsetY)
             sadEye(at:  size * 0.16, y: eyeOffsetY)
         } else {
-            openEye(at: -size * 0.16, y: eyeOffsetY)
-            openEye(at:  size * 0.16, y: eyeOffsetY)
+            openEye(at: -size * 0.16, y: eyeOffsetY, blink: blink)
+            openEye(at:  size * 0.16, y: eyeOffsetY, blink: blink)
         }
 
         mouth
     }
 
-    private func openEye(at x: CGFloat, y: CGFloat) -> some View {
+    private func openEye(at x: CGFloat, y: CGFloat, blink: Bool) -> some View {
         Capsule()
             .fill(Color(hex: "#1B0E0A"))
             .frame(width: size * 0.06, height: blink ? size * 0.015 : size * 0.10)
@@ -429,13 +431,15 @@ struct PommyMascot: View {
     // MARK: - Arms (for wave / celebrate)
 
     @ViewBuilder
-    private var arms: some View {
+    private func arms(time t: Double) -> some View {
         switch displayPose {
         case .wave:
-            arm(side: .right, raised: true, wiggle: armWave)
+            // Right arm waves at sin phase 0
+            arm(side: .right, raised: true, time: t, phase: 0)
         case .celebrate:
-            arm(side: .left,  raised: true, wiggle: armWave)
-            arm(side: .right, raised: true, wiggle: !armWave)
+            // Both arms up, alternating phases for that celebratory look
+            arm(side: .left,  raised: true, time: t, phase: 0)
+            arm(side: .right, raised: true, time: t, phase: .pi)
         default:
             EmptyView()
         }
@@ -443,13 +447,13 @@ struct PommyMascot: View {
 
     private enum ArmSide { case left, right }
 
-    private func arm(side: ArmSide, raised: Bool, wiggle: Bool) -> some View {
-        let dx: CGFloat   = (side == .right ? 1 : -1)
-        let baseX         = dx * size * 0.43
+    private func arm(side: ArmSide, raised: Bool, time t: Double, phase: Double = 0) -> some View {
+        let dx: CGFloat    = (side == .right ? 1 : -1)
+        let baseX          = dx * size * 0.43
         let baseY: CGFloat = raised ? -size * 0.10 : size * 0.10
-        let rotation: Double = raised
-            ? (side == .right ? -28 : 28) + (wiggle ? 8 : -8)
-            : 0
+        // Oscillates ±8° with period 1 s; phase offsets left/right in celebrate
+        let waveAngle      = sin(t * 2 * .pi + phase) * 8.0
+        let rotation: Double = raised ? (side == .right ? -28 : 28) + waveAngle : 0
 
         return Capsule()
             .fill(
@@ -462,51 +466,49 @@ struct PommyMascot: View {
             .frame(width: size * 0.12, height: size * 0.30)
             .rotationEffect(.degrees(rotation), anchor: .bottom)
             .offset(x: baseX, y: baseY)
-            .animation(
-                .easeInOut(duration: 0.5).repeatForever(autoreverses: true),
-                value: wiggle
-            )
     }
 
     // MARK: - Sleep Z's
 
     @ViewBuilder
-    private var zSparkles: some View {
+    private func zSparkles(time t: Double) -> some View {
         if displayPose == .sleep {
+            // Oscillates 0..1 with period 4.8 s, matching the original 2.4 s half-period
+            let zOsc = CGFloat((sin(t * .pi / 2.4) + 1) / 2)
             ZStack {
                 Text("z")
                     .font(.system(size: size * 0.18, weight: .bold))
                     .foregroundStyle(Color.white.opacity(0.5))
-                    .offset(x: size * 0.30, y: -size * 0.30 + (zPhase ? -4 : 0))
-                    .opacity(zPhase ? 1 : 0.3)
+                    .offset(x: size * 0.30, y: -size * 0.30 - zOsc * 4)
+                    .opacity(0.3 + Double(zOsc) * 0.7)
                 Text("z")
                     .font(.system(size: size * 0.13, weight: .bold))
                     .foregroundStyle(Color.white.opacity(0.4))
-                    .offset(x: size * 0.42, y: -size * 0.42 + (zPhase ? -6 : 0))
-                    .opacity(zPhase ? 0.4 : 1.0)
+                    .offset(x: size * 0.42, y: -size * 0.42 - zOsc * 6)
+                    .opacity(1.0 - Double(zOsc) * 0.6)
             }
-            .animation(
-                .easeInOut(duration: 2.4).repeatForever(autoreverses: true),
-                value: zPhase
-            )
         }
     }
 
-    // MARK: - Animations
+    // MARK: - Animation helpers
 
-    private var scaleForBreath: CGFloat {
+    // Breath: period 6.4 s (3.2 s up, 3.2 s down), matching original easeInOut(duration:3.2)
+    private func scaleForBreath(time t: Double) -> CGFloat {
+        let osc = CGFloat(sin(t * .pi / 3.2))
         switch displayPose {
-        case .sleep:    return breath ? 1.04 : 0.96
-        case .focus:    return breath ? 1.025 : 0.98
-        case .peek:     return 1.0
-        default:        return breath ? 1.02 : 0.99
+        case .sleep:  return 1.0 + osc * 0.04
+        case .focus:  return 1.0 + osc * 0.022
+        case .peek:   return 1.0
+        default:      return 1.0 + osc * 0.015
         }
     }
 
-    private var bounceOffset: CGFloat {
+    // Bounce: period ~1.1 s, matching original spring(response:0.55)
+    private func bounceOffset(time t: Double) -> CGFloat {
+        let osc = CGFloat((sin(t * 2 * .pi / 1.1) + 1) / 2)
         switch displayPose {
-        case .celebrate: return bounce ? -size * 0.08 : 0
-        case .wave:      return bounce ? -size * 0.02 : 0
+        case .celebrate: return -osc * size * 0.08
+        case .wave:      return -osc * size * 0.02
         default:         return 0
         }
     }
@@ -516,32 +518,6 @@ struct PommyMascot: View {
         case .curious: return -8
         case .sad:     return 4
         default:       return 0
-        }
-    }
-
-    private func startAnimations() {
-        // Breath
-        withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
-            breath = true
-        }
-
-        // Always-on ambient loops; pose-specific views opt in to read these.
-        Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
-            Task { @MainActor in
-                blink = true
-                try? await Task.sleep(for: .milliseconds(140))
-                blink = false
-            }
-        }
-
-        withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
-            armWave = true
-        }
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.55).repeatForever(autoreverses: true)) {
-            bounce = true
-        }
-        withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-            zPhase = true
         }
     }
 }
