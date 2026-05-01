@@ -13,7 +13,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Pommy",
-            path: "Sources/Pommy"
+            path: "Sources/Pommy",
+            swiftSettings: [
+                .unsafeFlags(["-O", "-whole-module-optimization"], .when(configuration: .release))
+            ]
         )
     ]
 )

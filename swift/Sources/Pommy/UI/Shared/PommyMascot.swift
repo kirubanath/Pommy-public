@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Mascot pose
 
-enum MascotPose {
+enum MascotPose: String, Codable {
     /// Calm, eyes open, gentle breathing. Default presence.
     case idle
     /// Eyes closed, slight forward lean — used while a focus session runs.
@@ -215,6 +215,7 @@ struct PommyMascot: View {
                     .offset(y: -size * 0.46)
             }
             .clipShape(Circle())
+            .drawingGroup()
             .overlay(
                 Circle()
                     .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)

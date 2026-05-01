@@ -51,6 +51,9 @@ cp "$BUILT_BIN" "$MACOS/Pommy"
 cp "$ICON_OUT" "$RESOURCES/AppIcon.icns"
 
 
+# Quips JSON
+cp Resources/quips.json "$RESOURCES/quips.json"
+
 # Audio loop files (optional — skip if not present)
 if [[ -d Resources/audio ]]; then
     mkdir -p "$RESOURCES/audio"

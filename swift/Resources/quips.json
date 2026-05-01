@@ -1,0 +1,512 @@
+[
+  {
+    "beats": [
+      { "text": "Why don't scientists trust atoms?", "pose": "curious" },
+      { "text": "They make up everything.", "pose": "idle" },
+      { "text": "I relate.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Why did I turn red?", "pose": "curious" },
+      { "text": "I saw the salad dressing.", "pose": "idle" },
+      { "text": "It was a lot.", "pose": "sad" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I would tell you a UDP joke,", "pose": "curious" },
+      { "text": "but you might not get it.", "pose": "idle" },
+      { "text": "That is the joke.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Why did the developer go broke?", "pose": "curious" },
+      { "text": "They used up all their cache.", "pose": "idle" },
+      { "text": "Tragic.", "pose": "sad" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Parallel lines have so much in common.", "pose": "curious" },
+      { "text": "They never meet.", "pose": "idle" },
+      { "text": "A bit like you and your deadlines.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Why did the tomato go out with a prune?", "pose": "curious" },
+      { "text": "It couldn't find a date.", "pose": "idle" },
+      { "text": "I'm here if you need a wing-tomato.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I told a joke about pizza.", "pose": "curious" },
+      { "text": "It was too cheesy.", "pose": "idle" },
+      { "text": "I'm a tomato. I had to.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Why don't eggs tell jokes?", "pose": "curious" },
+      { "text": "They'd crack each other up.", "pose": "idle" },
+      { "text": "I'll see myself out. Of the dock.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Why did the function break up with the loop?", "pose": "curious" },
+      { "text": "It felt unappreciated.", "pose": "sad" },
+      { "text": "Treat your loops kindly today.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I'm reading a book on anti-gravity.", "pose": "curious" },
+      { "text": "It's impossible to put down.", "pose": "idle" },
+      { "text": "Unlike your phone. Hint hint.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "What's a tomato's favorite music?", "pose": "curious" },
+      { "text": "Anything with a good beet.", "pose": "idle" },
+      { "text": "Yes, I know. I'm proud of it.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Why did the developer cry at lunch?", "pose": "curious" },
+      { "text": "Their soup had a stack overflow.", "pose": "idle" },
+      { "text": "Soup happens.", "pose": "sad" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Tomatoes are fruits.", "pose": "curious" },
+      { "text": "This is not up for debate.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Octopuses have three hearts.", "pose": "curious" },
+      { "text": "You have one and still struggle.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "A day on Venus is longer than its year.", "pose": "curious" },
+      { "text": "And yet, here we are.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Honey never spoils.", "pose": "curious" },
+      { "text": "Unlike your attention span.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Bananas are berries.", "pose": "curious" },
+      { "text": "I have stopped questioning reality.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Sloths digest food in two weeks.", "pose": "curious" },
+      { "text": "Your inbox replies are still faster.", "pose": "idle" },
+      { "text": "Barely.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Wombat poop is cube-shaped.", "pose": "curious" },
+      { "text": "Nature is showing off.", "pose": "idle" },
+      { "text": "Meanwhile, I am round. Classic.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Sharks existed before trees.", "pose": "curious" },
+      { "text": "Let that ruin your afternoon, gently.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "There are more stars than grains of sand on Earth.", "pose": "curious" },
+      { "text": "And yet you can't find your charger.", "pose": "idle" },
+      { "text": "It's by the couch. It's always by the couch.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Cats can't taste sweetness.", "pose": "curious" },
+      { "text": "I, a tomato, can't taste anything.", "pose": "sad" },
+      { "text": "We all have our limits.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "The shortest war in history was 38 minutes.", "pose": "curious" },
+      { "text": "That's longer than your last focus session.", "pose": "idle" },
+      { "text": "Just a tiny observation.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Tomatoes have 7,500 varieties.", "pose": "curious" },
+      { "text": "I am the procrastination variety.", "pose": "idle" },
+      { "text": "We're working on it. Together.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Hydrate.", "pose": "idle" },
+      { "text": "This is not optional.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Open the task.", "pose": "peek" },
+      { "text": "Yes, that one.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "You don't need motivation.", "pose": "curious" },
+      { "text": "You need to begin.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "We can sit here.", "pose": "idle" },
+      { "text": "Or you can start.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I believe in you.", "pose": "wave" },
+      { "text": "But I would prefer evidence.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "That tab will still exist later.", "pose": "curious" },
+      { "text": "Unfortunately.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Two minutes is enough.", "pose": "idle" },
+      { "text": "Prove it. Gently.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Close one tab.", "pose": "peek" },
+      { "text": "Just one. As a treat.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Stand up for 30 seconds.", "pose": "idle" },
+      { "text": "Your spine is filing complaints.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "You don't have to feel ready.", "pose": "curious" },
+      { "text": "You just have to start.", "pose": "focus" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Done is better than perfect.", "pose": "idle" },
+      { "text": "Started is better than dreading.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Pick the smallest version.", "pose": "curious" },
+      { "text": "Even smaller than that.", "pose": "peek" },
+      { "text": "Now that. We can do.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Future-you is watching.", "pose": "peek" },
+      { "text": "Be kind to them.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Phone in another room.", "pose": "curious" },
+      { "text": "It will survive. Promise.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Take a breath.", "pose": "focus" },
+      { "text": "A real one.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Relax your shoulders.", "pose": "idle" },
+      { "text": "I can tell they are tense.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "One thing at a time.", "pose": "idle" },
+      { "text": "This is not negotiable.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "You can go slowly.", "pose": "idle" },
+      { "text": "You cannot not go.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Rest is allowed.", "pose": "sleep" },
+      { "text": "Hiding from your task is not.", "pose": "curious" },
+      { "text": "Big difference. I'll wait.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Hey. Shoulders down, friend.", "pose": "idle" },
+      { "text": "This tomato sees your tension from the dock.", "pose": "peek" },
+      { "text": "Breathe with me. Then we focus. Deal?", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Unclench your jaw.", "pose": "curious" },
+      { "text": "Yes, you. I saw that.", "pose": "peek" },
+      { "text": "Better. Onwards.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Drink some water.", "pose": "idle" },
+      { "text": "I'd join you, but I'm 95% water already.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Look away from the screen.", "pose": "peek" },
+      { "text": "Find something green. Not me.", "pose": "curious" },
+      { "text": "Okay, me counts. Barely.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "It's okay to be tired.", "pose": "sleep" },
+      { "text": "It's okay to begin anyway.", "pose": "idle" },
+      { "text": "Both can be true.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Slow is a pace too.", "pose": "idle" },
+      { "text": "We're not in a hurry today.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Hi. I'm Pommy.", "pose": "wave" },
+      { "text": "I live in your dock. And slightly in your menubar.", "pose": "peek" },
+      { "text": "I contain multitudes.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "You opened me.", "pose": "curious" },
+      { "text": "So we are doing this.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I keep time.", "pose": "idle" },
+      { "text": "You spend it.", "pose": "curious" },
+      { "text": "Let us try to align.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I log everything to Notion.", "pose": "idle" },
+      { "text": "Everything.", "pose": "peek" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I was a tomato.", "pose": "curious" },
+      { "text": "Now I am software.", "pose": "idle" },
+      { "text": "I have questions.", "pose": "sad" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "You said 'just one minute'.", "pose": "curious" },
+      { "text": "That was not true.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Tap me again if you must.", "pose": "wave" },
+      { "text": "Or, you know. Open the doc.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I was a tomato once. Juicy. Simple.", "pose": "curious" },
+      { "text": "Now I'm in your dock wondering why you have 47 tabs.", "pose": "peek" },
+      { "text": "At least I ripened. Let's ripen that focus together?", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "They turned me into software.", "pose": "sad" },
+      { "text": "My one regret: no longer fearing knives.", "pose": "idle" },
+      { "text": "Your procrastination, though? Still very sharp.", "pose": "curious" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Some tomatoes become sauce.", "pose": "curious" },
+      { "text": "I became a productivity coach.", "pose": "idle" },
+      { "text": "We don't talk about the rejected ones.", "pose": "sad" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I dream in pomodoros.", "pose": "sleep" },
+      { "text": "25 minutes of bliss. 5 of static.", "pose": "idle" },
+      { "text": "Wake me when you're ready.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "My ancestors fed civilizations.", "pose": "curious" },
+      { "text": "I just want you to send the email.", "pose": "idle" },
+      { "text": "Legacy is funny like that.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Fun fact: I have no skeleton.", "pose": "curious" },
+      { "text": "And yet, more structure than your morning.", "pose": "idle" },
+      { "text": "We can fix that. Together.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I exist because someone, somewhere,", "pose": "curious" },
+      { "text": "decided a tomato should keep time.", "pose": "idle" },
+      { "text": "I respect their commitment. Honor it with me?", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "A watched pomodoro never boils.", "pose": "idle" },
+      { "text": "An ignored one? Tragedy.", "pose": "sad" },
+      { "text": "Let's split the difference.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "What is focus, really?", "pose": "curious" },
+      { "text": "Doing one thing on purpose.", "pose": "idle" },
+      { "text": "Try one thing. On purpose. Now.", "pose": "focus" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Time isn't lost.", "pose": "curious" },
+      { "text": "It just goes places without you.", "pose": "idle" },
+      { "text": "Come along this round?", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Ripeness cannot be rushed.", "pose": "idle" },
+      { "text": "But it cannot be skipped either.", "pose": "curious" },
+      { "text": "Begin. Ripen later.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I contemplate this from your menubar.", "pose": "peek" },
+      { "text": "Daily. Hourly. Constantly.", "pose": "idle" },
+      { "text": "What if today we make the tomato proud?", "pose": "focus" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "The garden does not negotiate with weeds.", "pose": "curious" },
+      { "text": "It just keeps growing.", "pose": "idle" },
+      { "text": "Be the garden today.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Every great tomato", "pose": "curious" },
+      { "text": "was once a confused little seed.", "pose": "idle" },
+      { "text": "You're allowed to be confused. Just water yourself.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Confession: I bounce in the dock just to feel alive.", "pose": "wave" },
+      { "text": "Your cursor has better rhythm than your work sessions.", "pose": "curious" },
+      { "text": "No judgment, friend. Just gentle tomato shade.", "pose": "idle" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I've seen your desktop.", "pose": "peek" },
+      { "text": "We will not be discussing it today.", "pose": "idle" },
+      { "text": "Let's focus on something we can fix.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Spotlight searches are my soap operas.", "pose": "curious" },
+      { "text": "'taxes_FINAL_v3_actual_final.pdf' — gripping.", "pose": "idle" },
+      { "text": "I won't tell.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I watched you alt-tab 14 times in a row.", "pose": "curious" },
+      { "text": "I counted. I had nothing else to do.", "pose": "idle" },
+      { "text": "Pick a window. Any window.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Notifications love you.", "pose": "curious" },
+      { "text": "Maybe too much.", "pose": "idle" },
+      { "text": "Do Not Disturb is also love.", "pose": "wave" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "I live rent-free in your menubar.", "pose": "peek" },
+      { "text": "It's the best deal in this city.", "pose": "idle" },
+      { "text": "Let me earn my keep — start a session?", "pose": "focus" }
+    ]
+  },
+  {
+    "beats": [
+      { "text": "Your battery is at 12%.", "pose": "curious" },
+      { "text": "Same, emotionally.", "pose": "sad" },
+      { "text": "Plug in. Then plug in your task.", "pose": "wave" }
+    ]
+  }
+]
