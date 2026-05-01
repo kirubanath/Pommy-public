@@ -21,9 +21,6 @@ struct RestView: View {
     private var totalSeconds: Int { appState.config.restDurationMins * 60 }
     private var remaining:    Int { max(0, totalSeconds - elapsed) }
 
-    @State private var moteDrift:   Double = 0
-    @State private var moteTimer:   Timer?
-
     var body: some View {
         ZStack {
             // Warm sunset backdrop with faint star specks
@@ -39,8 +36,11 @@ struct RestView: View {
             .ignoresSafeArea()
 
             // Drifting ambient motes — fireflies + dust
-            ForEach(0..<8, id: \.self) { i in
-                ambientMote(index: i)
+            TimelineView(.animation(minimumInterval: 1.0 / 15.0)) { context in
+                let moteDrift = context.date.timeIntervalSinceReferenceDate
+                ForEach(0..<8, id: \.self) { i in
+                    ambientMote(index: i, moteDrift: moteDrift)
+                }
             }
 
             VStack(spacing: 0) {
@@ -67,29 +67,12 @@ struct RestView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             startGrassAnimation()
-            startMoteAnimation()
             startSession()
         }
         .onDisappear { stopAll() }
     }
 
-    private func startMoteAnimation() {
-        moteTimer?.invalidate()
-        let t = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
-            Task { @MainActor in
-                moteDrift += 0.04
-            }
-        }
-        RunLoop.main.add(t, forMode: .common)
-        moteTimer = t
-    }
-
-    private func stopMoteAnimation() {
-        moteTimer?.invalidate()
-        moteTimer = nil
-    }
-
-    private func ambientMote(index i: Int) -> some View {
+    private func ambientMote(index i: Int, moteDrift: Double) -> some View {
         let baseXs: [CGFloat] = [-180, -110, -40, 30, 90, 150, 200, -200]
         let baseYs: [CGFloat] = [-200, -140, -180, -110, -160, -90, -210, -120]
         let phase  = Double(i) * 0.7
@@ -223,7 +206,6 @@ struct RestView: View {
     private func stopAll() {
         stopSession()
         stopGrassAnimation()
-        stopMoteAnimation()
     }
 
     // MARK: - Grass animation
