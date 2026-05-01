@@ -78,6 +78,12 @@ final class AppState {
     var showStopSheet:  Bool   = false
     var stopSheetNotes: String = ""
 
+    // MARK: Session source
+
+    /// True when the running session was launched from the stopwatch panel.
+    /// Lets each panel show its own idle/running UI without cross-contamination.
+    var isStopwatchSession: Bool = false
+
     // MARK: Save confirmation
 
     /// True for ~1.2 s after a session is saved — drives the ✓ Saved banner.
@@ -218,9 +224,10 @@ final class AppState {
             )
         }
 
-        showStopSheet  = false
-        notes          = ""
-        stopSheetNotes = ""
+        showStopSheet      = false
+        notes              = ""
+        stopSheetNotes     = ""
+        isStopwatchSession = false
         session.reset()
 
         // Flash the ✓ Saved banner briefly.
@@ -233,8 +240,9 @@ final class AppState {
 
     /// Stop sheet → [Discard].
     func discardSession() {
-        showStopSheet  = false
-        stopSheetNotes = ""
+        showStopSheet      = false
+        stopSheetNotes     = ""
+        isStopwatchSession = false
         session.reset()
     }
 

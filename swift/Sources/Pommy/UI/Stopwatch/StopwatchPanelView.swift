@@ -25,8 +25,13 @@ struct StopwatchPanelView: View {
                     idleContent
                         .transition(.opacity)
                 default:
-                    runningContent
-                        .transition(.opacity)
+                    if appState.isStopwatchSession {
+                        runningContent
+                            .transition(.opacity)
+                    } else {
+                        blockedByTimerView
+                            .transition(.opacity)
+                    }
                 }
             }
             .animation(.easeInOut(duration: 0.35), value: stateGroup)
@@ -93,8 +98,37 @@ struct StopwatchPanelView: View {
     private var stateGroup: Int {
         switch appState.session.state {
         case .idle, .afterFocusSaved, .afterBreakSaved: return 0
-        default: return 1
+        default: return appState.isStopwatchSession ? 1 : 2
         }
+    }
+
+    private var blockedByTimerView: some View {
+        VStack(spacing: 20) {
+            PommyMascot(pose: .curious, size: 52)
+            VStack(spacing: 6) {
+                Text("Timer is running.")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.85))
+                Text("Stop it there before starting the stopwatch.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            Button {
+                withAnimation(Motion.springSoft) { appState.selectedPage = .timer }
+            } label: {
+                Label("Go to timer", systemImage: "timer")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.75))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Surface.topHighlight, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .pommyPress()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Idle content
@@ -449,6 +483,7 @@ struct StopwatchPanelView: View {
 
     private func launchSession(type: SessionType) {
         appState.session.targetSeconds = Self.openEndedTarget
+        appState.isStopwatchSession    = true
         if type == .focus {
             appState.startFocus(category: selectedCat, task: task, breatheFirst: false)
         } else {

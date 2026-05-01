@@ -229,7 +229,7 @@ struct IdleView: View {
             HStack(spacing: 10) {
                 Text(dialType == .focus ? "Start Focus" : "Start Break")
                     .font(.system(size: 15, weight: .semibold))
-                Text("Space")
+                /// Text("Space")
                     .font(.system(size: 10, weight: .medium).monospaced())
                     .foregroundStyle(.white.opacity(0.85))
                     .padding(.horizontal, 6)
@@ -261,7 +261,6 @@ struct IdleView: View {
             .scaleEffect(ctaBreath ? 1.012 : 1.0)
         }
         .buttonStyle(.plain)
-        .keyboardShortcut(" ", modifiers: [])
         .pommyPress(hoverScale: 1.015, pressScale: 0.985)
         .onAppear {
             withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {

@@ -27,11 +27,21 @@ struct TimerPanelView: View {
                     IdleView()
                         .transition(.opacity)
                 case .breathing:
-                    BreathingGateView()
-                        .transition(.opacity)
+                    if appState.isStopwatchSession {
+                        blockedByStopwatchView
+                            .transition(.opacity)
+                    } else {
+                        BreathingGateView()
+                            .transition(.opacity)
+                    }
                 default:
-                    RunningView()
-                        .transition(.opacity)
+                    if appState.isStopwatchSession {
+                        blockedByStopwatchView
+                            .transition(.opacity)
+                    } else {
+                        RunningView()
+                            .transition(.opacity)
+                    }
                 }
             }
             .animation(.easeInOut(duration: 0.35), value: stateGroup)
@@ -157,9 +167,38 @@ struct TimerPanelView: View {
     private var stateGroup: Int {
         switch appState.session.state {
         case .idle, .afterFocusSaved, .afterBreakSaved: return 0
-        case .breathing:                                 return 1
-        default:                                         return 2
+        case .breathing:                                 return appState.isStopwatchSession ? 3 : 1
+        default:                                         return appState.isStopwatchSession ? 3 : 2
         }
+    }
+
+    private var blockedByStopwatchView: some View {
+        VStack(spacing: 20) {
+            PommyMascot(pose: .curious, size: 52)
+            VStack(spacing: 6) {
+                Text("Stopwatch is running.")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.85))
+                Text("Stop it there before starting a timer.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            Button {
+                withAnimation(Motion.springSoft) { appState.selectedPage = .stopwatch }
+            } label: {
+                Label("Go to stopwatch", systemImage: "stopwatch")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.75))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Surface.topHighlight, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .pommyPress()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
