@@ -56,6 +56,10 @@ struct MenuBarPopover: View {
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
+                    Spacer()
+                    if appState.credentials != nil {
+                        syncDot
+                    }
                 }
             }
         }
@@ -85,6 +89,36 @@ struct MenuBarPopover: View {
             Text(timerLabel)
                 .font(.system(size: 13, weight: .medium).monospacedDigit())
                 .foregroundStyle(.primary.opacity(0.85))
+        }
+    }
+
+    // MARK: - Sync dot (B5)
+
+    @ViewBuilder
+    private var syncDot: some View {
+        switch appState.syncDotState {
+        case .ok:
+            Circle()
+                .fill(Color.green.opacity(0.75))
+                .frame(width: 7, height: 7)
+                .help("Synced with Notion")
+        case .pending:
+            Circle()
+                .fill(Color.yellow.opacity(0.85))
+                .frame(width: 7, height: 7)
+                .help("Syncing with Notion…")
+        case .failed(let m):
+            Circle()
+                .fill(Color.red.opacity(0.75))
+                .frame(width: 7, height: 7)
+                .help("Sync failed: \(m)")
+                .onTapGesture {
+                    NSApp.windows
+                        .first(where: { $0.identifier?.rawValue == "main" })?
+                        .makeKeyAndOrderFront(nil)
+                    NSApp.activate(ignoringOtherApps: true)
+                    appState.selectedPage = .settings
+                }
         }
     }
 

@@ -238,13 +238,11 @@ final class SessionLog {
     }
 
     private static func refreshMutableFields(_ entry: inout SessionEntry, from result: NotionSessionResult) {
-        entry.date          = result.date
-        entry.session_type  = result.sessionType
-        entry.category      = result.category
-        entry.task          = result.task
-        entry.duration_mins = result.durationMins
-        entry.overflow_mins = result.overflowMins
-        entry.notes         = result.notes
+        // Conflict policy: Notion wins for user-editable fields; local wins for immutable session facts.
+        entry.category = result.category
+        entry.task     = result.task
+        entry.notes    = result.notes
+        // date, session_type, duration_mins, overflow_mins intentionally NOT updated from Notion.
     }
 
     /// Heuristic content match for legacy / pending entries that have no page id.
@@ -283,6 +281,29 @@ final class SessionLog {
     /// All entries that still need to be pushed to Notion.
     var pendingEntries: [SessionEntry] {
         entries.filter { $0.pending_push }
+    }
+
+    var pendingPushCount: Int { entries.filter { $0.pending_push }.count }
+
+    func entry(id: UUID) -> SessionEntry? {
+        entries.first { $0.id == id }
+    }
+
+    /// Give up on a permanently-failed push (e.g. non-retryable 4xx).
+    func markPushFailed(id: UUID) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        entries[idx].pending_push = false
+        try? writeToDisk()
+    }
+
+    /// Discard a pending (unsynced) entry. Only valid for entries that have never
+    /// been pushed to Notion (notion_page_id == nil). For synced entries, delete
+    /// from Notion first — reconcile will drop the local mirror automatically.
+    func discardEntry(id: UUID) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        guard entries[idx].notion_page_id == nil else { return }
+        entries.remove(at: idx)
+        try? writeToDisk()
     }
 
     // MARK: Queries (used by Stats + Calendar)

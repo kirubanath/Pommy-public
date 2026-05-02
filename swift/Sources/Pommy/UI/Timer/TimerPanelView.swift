@@ -65,7 +65,7 @@ struct TimerPanelView: View {
                             activityMode: appState.effectiveAnimationMode
                         )
                         .frame(height: 28)
-                        Text("Logged it")
+                        Text("Saved")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundStyle(.primary)

@@ -45,6 +45,14 @@ enum NotionSyncStatus: Equatable {
     case failed(String)
 }
 
+// MARK: - Sync dot state (B5)
+
+enum SyncDotState: Equatable {
+    case ok
+    case pending
+    case failed(String)
+}
+
 struct NotionStats {
     var todayFocusMinutes: Int
     var weekFocusMinutes:  Int
@@ -80,6 +88,16 @@ final class AppState {
         if !isAppActive || !isMainWindowVisible { return .frozen }
         if !isMainWindowKey { return .throttled }
         return .full
+    }
+
+    var syncDotState: SyncDotState {
+        if case .failed(let m) = notionSyncStatus { return .failed(m) }
+        if notionSyncStatus == .syncing || sessionLog.pendingPushCount > 0 { return .pending }
+        return .ok
+    }
+
+    func reportOutboxError(_ message: String) {
+        notionSyncStatus = .failed(message)
     }
 
     // MARK: Navigation
@@ -134,9 +152,12 @@ final class AppState {
         session.targetSeconds = config.focusDuration * 60
 
         await sessionLog.load()
+        await NotionOutbox.shared.configure(appState: self)
 
         if let creds = credentials {
             await syncNotionStats(creds: creds)
+        } else {
+            Task.detached { await NotionOutbox.shared.kick() }
         }
 
         startAutoSync()
@@ -171,6 +192,7 @@ final class AppState {
                 self?.isAppActive = true
                 self?.handleActivityModeTransition()
             }
+            Task.detached { await NotionOutbox.shared.kick() }
         }
         lifecycleObservers.append(becomeObserver)
     }
@@ -248,7 +270,7 @@ final class AppState {
         }
     }
 
-    /// Stop sheet → [Save].
+    /// Stop sheet → [Save]. Local-first: appends instantly, pushes to Notion in background.
     func saveSession() async {
         let combinedNotes = [notes, stopSheetNotes]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -268,27 +290,20 @@ final class AppState {
 
         do { try sessionLog.append(entry) } catch {}
 
-        if let creds = credentials {
-            await pushToNotion(
-                entry:     entry,
-                notes:     combinedNotes,
-                creds:     creds,
-                startedAt: session.sessionStart ?? Date()
-            )
-        }
-
+        // Dismiss UI immediately — user never waits on Notion.
         showStopSheet      = false
         notes              = ""
         stopSheetNotes     = ""
         isStopwatchSession = false
         session.reset()
 
-        // Flash the ✓ Saved banner briefly.
         showSavedConfirmation = true
         Task {
             try? await Task.sleep(for: .seconds(1.2))
             showSavedConfirmation = false
         }
+
+        Task.detached { await NotionOutbox.shared.kick() }
     }
 
     /// Stop sheet → [Discard].
@@ -343,8 +358,8 @@ final class AppState {
             let todayStr       = SessionLog.isoDate(from: Date())
             sessionLog.reconcileWithNotion(results, from: windowStartStr, to: todayStr)
 
-            // Retry any local entries that never made it to Notion.
-            await retryPendingPushes(creds: creds)
+            // Push any local entries that never made it to Notion.
+            Task.detached { await NotionOutbox.shared.kick() }
 
             // Stats counters use the raw Notion query so they're authoritative
             // even before the local log finishes reconciling.
@@ -366,28 +381,6 @@ final class AppState {
         }
     }
 
-    private func retryPendingPushes(creds: NotionCredentials) async {
-        for entry in sessionLog.pendingEntries {
-            // Skip entries that the reconcile step already adopted a page id for.
-            if entry.notion_page_id != nil { continue }
-            do {
-                let pageID = try await NotionClient.saveSession(
-                    creds:        creds,
-                    config:       config,
-                    task:         entry.task,
-                    category:     entry.category,
-                    sessionType:  entry.sessionTypeEnum,
-                    startedAt:    entry.dateValue ?? Date(),
-                    durationMins: entry.duration_mins,
-                    overflowMins: entry.overflow_mins,
-                    notes:        entry.notes
-                )
-                sessionLog.attachNotionPageID(id: entry.id, pageID: pageID)
-            } catch {
-                // Still pending — try again on the next sync.
-            }
-        }
-    }
 
     // MARK: - Config helpers
 
@@ -466,32 +459,6 @@ final class AppState {
             pauseUITickers()
         } else {
             resumeUITickers()
-        }
-    }
-
-    private func pushToNotion(
-        entry:     SessionEntry,
-        notes:     String,
-        creds:     NotionCredentials,
-        startedAt: Date
-    ) async {
-        do {
-            let pageID = try await NotionClient.saveSession(
-                creds:        creds,
-                config:       config,
-                task:         entry.task,
-                category:     entry.category,
-                sessionType:  entry.sessionTypeEnum,
-                startedAt:    startedAt,
-                durationMins: entry.duration_mins,
-                overflowMins: entry.overflow_mins,
-                notes:        notes
-            )
-            sessionLog.attachNotionPageID(id: entry.id, pageID: pageID)
-        } catch {
-            // Non-fatal — entry stays flagged pending and the next auto-sync
-            // will retry the push.
-            sessionLog.markPending(id: entry.id)
         }
     }
 

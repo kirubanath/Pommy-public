@@ -315,6 +315,7 @@ struct CalendarView: View {
     private func sessionRow(_ entry: SessionEntry) -> some View {
         let isExpanded = expandedEntryID == entry.id
         let isBreak    = entry.isBreak
+        let isPending  = entry.pending_push && entry.notion_page_id == nil
         let dotColor   = isBreak ? Color(white: 0.45) : appState.config.color(for: entry.category)
 
         return Button {
@@ -333,6 +334,12 @@ struct CalendarView: View {
                         .lineLimit(isExpanded ? nil : 1)
                     Spacer()
                     HStack(spacing: 4) {
+                        if isPending {
+                            Circle()
+                                .fill(Color.yellow.opacity(0.8))
+                                .frame(width: 5, height: 5)
+                                .help("Not yet synced to Notion")
+                        }
                         Text("\(entry.duration_mins)m")
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
@@ -362,6 +369,25 @@ struct CalendarView: View {
                                 .font(.system(size: 10))
                                 .foregroundStyle(.quaternary)
                                 .italic()
+                        }
+
+                        if isPending {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    expandedEntryID = nil
+                                }
+                                appState.sessionLog.discardEntry(id: entry.id)
+                            } label: {
+                                Text("Discard")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(Color.red.opacity(0.75))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.red.opacity(0.08), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 4)
+                            .help("Remove this session — it has not been pushed to Notion yet")
                         }
                     }
                     .padding(.leading, 13)

@@ -91,7 +91,7 @@ struct SidebarView: View {
                 RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
                     .fill(Color.clear)
                     .frame(width: 44, height: 44)
-                if appState.notionSyncStatus == .syncing {
+                if appState.syncDotState == .pending {
                     SpinningPommyBadge(activityMode: appState.effectiveAnimationMode)
                         .frame(width: 24, height: 24)
                 } else {
@@ -109,10 +109,10 @@ struct SidebarView: View {
     }
 
     private var syncIconColor: Color {
-        switch appState.notionSyncStatus {
-        case .failed:  return Color.red.opacity(0.75)
-        case .synced:  return Color.green.opacity(0.75)
-        default:       return .secondary
+        switch appState.syncDotState {
+        case .failed:   return Color.red.opacity(0.75)
+        case .ok:       return Color.green.opacity(0.75)
+        case .pending:  return .secondary
         }
     }
 
@@ -168,11 +168,11 @@ struct SidebarView: View {
     }
 
     private var syncHelp: String {
-        switch appState.notionSyncStatus {
-        case .syncing:       return "Syncing…"
-        case .synced:        return "Synced"
+        guard appState.credentials != nil else { return "Sync with Notion" }
+        switch appState.syncDotState {
+        case .pending:       return appState.notionSyncStatus == .syncing ? "Syncing…" : "Pushing to Notion…"
+        case .ok:            return "Synced"
         case .failed(let m): return "Sync failed: \(m)"
-        default:             return "Sync with Notion"
         }
     }
 }
