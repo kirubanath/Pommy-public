@@ -53,6 +53,7 @@ Skips the icon and bundle steps. Fine for logic iteration but the menubar item a
 ## Architecture
 
 - `AppState` (`@Observable`) is the single source of truth. `Config`, `TimerSession`, and `SessionLog` are sub-models.
+- `NotionOutbox` (`actor`) is the single write path to Notion — a write-behind queue that drains serially, retries on transient errors, and surfaces permanent failures as a sync-dot state. `AppState` never awaits network; saves are always instant.
 - `SystemFeedback` ticks every second and updates the dock badge and window title from `TimerSession`.
 - `DesignTokens.swift` holds the entire visual language — `Surface` colors, fill ladder (`fillFaint` / `fillSoft` / `fillStrong`), `Camp` accent palette, `Radius`, `Spacing`, `Motion`, typography, and reusable views: `AmbientAppBackground`, `PommyDivider`, `PommySectionCard`, `PommySettingsRow`, `PommyRowDivider`, plus the `.pommyPress`, `.pommyGlow`, `.pommyHairline`, `.campGlow`, `.pommySecondaryButton` modifiers. Everything else reads from it.
 - `TodayThemes.swift` renders the night-camp scene used in Stats. It is a self-contained atmospheric piece — single time source via `TimelineView(.animation)`, layered sines for natural motion, smoothstep eases for state transitions, two-layer `.plusLighter` glow for lit objects. Don't extend it casually.
