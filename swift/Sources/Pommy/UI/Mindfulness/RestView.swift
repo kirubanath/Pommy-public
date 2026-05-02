@@ -8,11 +8,13 @@ struct RestView: View {
 
     let onDismiss: () -> Void
 
-    @State private var elapsed:   Int    = 0
-    @State private var isRunning: Bool   = false
-    @State private var isPaused:  Bool   = false
-    @State private var ticker:    Timer? = nil
-    @State private var player:    AVAudioPlayer? = nil
+    @State private var elapsed:       Int              = 0
+    @State private var isRunning:     Bool             = false
+    @State private var isPaused:      Bool             = false
+    @State private var ticker:        Timer?           = nil
+    @State private var player:        AVAudioPlayer?   = nil
+    @State private var runStart:      Date?            = nil
+    @State private var pausedElapsed: TimeInterval     = 0
 
     // Grass blade animation phases (different per blade for natural feel)
     @State private var grassPhase: Double = 0
@@ -190,15 +192,22 @@ struct RestView: View {
     // MARK: - Session lifecycle
 
     private func startSession() {
-        elapsed   = 0
-        isRunning = true
-        isPaused  = false
+        pausedElapsed = 0
+        runStart      = Date()
+        elapsed       = 0
+        isRunning     = true
+        isPaused      = false
         startAudio()
         startTicker()
     }
 
     private func pauseSession() {
         guard isRunning else { return }
+        if let rs = runStart {
+            pausedElapsed += Date.now.timeIntervalSince(rs)
+            elapsed = Int(pausedElapsed)
+            runStart = nil
+        }
         isPaused = true
         player?.pause()
         stopTicker()
@@ -206,15 +215,18 @@ struct RestView: View {
 
     private func resumeSession() {
         guard isRunning, isPaused else { return }
+        runStart = Date()
         isPaused = false
         player?.play()
         startTicker()
     }
 
     private func stopSession() {
-        isRunning = false
-        isPaused  = false
-        elapsed   = 0
+        runStart      = nil
+        pausedElapsed = 0
+        isRunning     = false
+        isPaused      = false
+        elapsed       = 0
         stopAudio()
         stopTicker()
     }
@@ -250,7 +262,9 @@ struct RestView: View {
         stopTicker()
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
-                elapsed += 1
+                if let rs = runStart {
+                    elapsed = Int(pausedElapsed + Date.now.timeIntervalSince(rs))
+                }
                 if elapsed >= totalSeconds {
                     stopAll()
                     onDismiss()

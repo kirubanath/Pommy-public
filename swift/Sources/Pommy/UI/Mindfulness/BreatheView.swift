@@ -7,13 +7,15 @@ struct BreatheView: View {
 
     let onDismiss: () -> Void
 
-    @State private var scale:      CGFloat     = 0.55
-    @State private var phase:      BreathPhase = .inhale
-    @State private var elapsed:    Int         = 0
-    @State private var isRunning:  Bool        = false
-    @State private var isPaused:   Bool        = false
-    @State private var timer:      Timer?      = nil
-    @State private var phaseTask:  Task<Void, Never>? = nil
+    @State private var scale:         CGFloat              = 0.55
+    @State private var phase:         BreathPhase          = .inhale
+    @State private var elapsed:       Int                  = 0
+    @State private var isRunning:     Bool                 = false
+    @State private var isPaused:      Bool                 = false
+    @State private var timer:         Timer?               = nil
+    @State private var phaseTask:     Task<Void, Never>?   = nil
+    @State private var runStart:      Date?                = nil
+    @State private var pausedElapsed: TimeInterval         = 0
 
     private var totalSeconds: Int { appState.config.breatheDurationMins * 60 }
     private var remaining:    Int { max(0, totalSeconds - elapsed) }
@@ -113,15 +115,22 @@ struct BreatheView: View {
     // MARK: - Session lifecycle
 
     private func startSession() {
-        elapsed   = 0
-        isRunning = true
-        isPaused  = false
+        pausedElapsed = 0
+        runStart      = Date()
+        elapsed       = 0
+        isRunning     = true
+        isPaused      = false
         runPhase(.inhale)
         startTimer()
     }
 
     private func pauseSession() {
         guard isRunning else { return }
+        if let rs = runStart {
+            pausedElapsed += Date.now.timeIntervalSince(rs)
+            elapsed = Int(pausedElapsed)
+            runStart = nil
+        }
         isPaused = true
         phaseTask?.cancel()
         phaseTask = nil
@@ -130,14 +139,17 @@ struct BreatheView: View {
 
     private func resumeSession() {
         guard isRunning, isPaused else { return }
+        runStart = Date()
         isPaused = false
         startTimer()
         runPhase(phase)
     }
 
     private func stopSession() {
-        isRunning = false
-        isPaused  = false
+        runStart      = nil
+        pausedElapsed = 0
+        isRunning     = false
+        isPaused      = false
         phaseTask?.cancel()
         phaseTask = nil
         stopTimer()
@@ -167,7 +179,9 @@ struct BreatheView: View {
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
-                elapsed += 1
+                if let rs = runStart {
+                    elapsed = Int(pausedElapsed + Date.now.timeIntervalSince(rs))
+                }
                 if elapsed >= totalSeconds {
                     stopSession()
                     onDismiss()

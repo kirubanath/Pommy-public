@@ -60,6 +60,13 @@ final class TimerSession {
     private var timer: Timer?
     private(set) var sessionStart: Date?
 
+    /// Wall-clock instant the current running interval began (nil when paused).
+    private var runStart: Date?
+
+    /// Elapsed seconds accumulated in all previous running intervals (before
+    /// the current one). Banked on each pause so resume can add on top of it.
+    private var pausedElapsed: TimeInterval = 0
+
     // MARK: - Session lifecycle
 
     /// Called when the user taps Start on the idle dial.
@@ -80,7 +87,9 @@ final class TimerSession {
 
     /// Called by `BreathingGateView` when breathing is complete or skipped.
     func beginFocus() {
-        sessionStart = Date()
+        sessionStart   = Date()
+        pausedElapsed  = 0
+        runStart       = Date()
         startTicking()
         state = .focusRunning
     }
@@ -91,11 +100,19 @@ final class TimerSession {
         self.sessionType = .break
         elapsedSeconds   = 0
         sessionStart     = Date()
+        pausedElapsed    = 0
+        runStart         = Date()
         startTicking()
         state = .breakRunning
     }
 
     func pause() {
+        // Bank elapsed time before stopping the ticker so the count is correct.
+        if let rs = runStart {
+            pausedElapsed += Date.now.timeIntervalSince(rs)
+            elapsedSeconds = Int(pausedElapsed)
+            runStart = nil
+        }
         stopTicking()
         switch state {
         case .focusRunning, .focusOverflow:
@@ -108,6 +125,7 @@ final class TimerSession {
     }
 
     func resume() {
+        runStart = Date()
         startTicking()
         switch state {
         case .focusPaused:
@@ -121,6 +139,12 @@ final class TimerSession {
 
     /// Called when the user taps ⏹ Stop — does NOT log; caller handles logging.
     func stop() {
+        // Final bank so durationMins reflects true elapsed time.
+        if let rs = runStart {
+            pausedElapsed += Date.now.timeIntervalSince(rs)
+            elapsedSeconds = Int(pausedElapsed)
+            runStart = nil
+        }
         stopTicking()
         switch sessionType {
         case .focus: state = .afterFocusSaved
@@ -131,6 +155,8 @@ final class TimerSession {
     /// Resets fully back to idle (called after session is saved/discarded).
     func reset() {
         stopTicking()
+        pausedElapsed  = 0
+        runStart       = nil
         elapsedSeconds = 0
         sessionStart   = nil
         state          = .idle
@@ -165,7 +191,10 @@ final class TimerSession {
     }
 
     private func tick() {
-        elapsedSeconds += 1
+        // Compute from wall clock so screen-sleep gaps don't lose time.
+        if let rs = runStart {
+            elapsedSeconds = Int(pausedElapsed + Date.now.timeIntervalSince(rs))
+        }
         updateOverflowState()
     }
 

@@ -459,7 +459,6 @@ final class AppState {
                 try? await Task.sleep(for: .seconds(interval))
                 guard config.notionSyncEnabled else { continue }
                 guard let creds = credentials else { continue }
-                guard isAppActive else { continue }
                 guard notionSyncStatus != .syncing else { continue }
                 await syncNotionStats(creds: creds)
             }

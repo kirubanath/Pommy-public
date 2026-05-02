@@ -72,8 +72,10 @@ final class SystemFeedback {
             hasChimedForCurrentSession = false
         }
 
-        // Fire once at the moment the session crosses target
-        let justCrossed = session.elapsedSeconds == session.targetSeconds
+        // Fire once when (or after) the session crosses target. Using >= so
+        // the chime isn't lost if feedbackTimer was paused during screen sleep
+        // and tick() wasn't called on the exact crossing second.
+        let justCrossed = session.elapsedSeconds >= session.targetSeconds
         let isFocus     = session.sessionType == .focus
 
         if justCrossed && isFocus && !hasChimedForCurrentSession {
