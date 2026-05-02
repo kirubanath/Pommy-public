@@ -90,7 +90,7 @@ struct SidebarView: View {
                     .fill(Color.clear)
                     .frame(width: 44, height: 44)
                 if appState.notionSyncStatus == .syncing {
-                    SpinningPommyBadge()
+                    SpinningPommyBadge(activityMode: appState.effectiveAnimationMode)
                         .frame(width: 24, height: 24)
                 } else {
                     Image(systemName: "arrow.clockwise")
@@ -117,13 +117,33 @@ struct SidebarView: View {
 
     /// Tiny curious Pommy that spins while a sync is in flight.
     private struct SpinningPommyBadge: View {
+        var activityMode: AnimationActivityMode
         @State private var rotation: Double = 0
         var body: some View {
-            PommyMascot(pose: .curious, size: 22)
+            PommyMascot(
+                pose: .curious,
+                size: 22,
+                cadence: .decorative,
+                activityMode: activityMode
+            )
                 .rotationEffect(.degrees(rotation))
                 .onAppear {
-                    withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
-                        rotation = 360
+                    if activityMode == .full {
+                        withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
+                            rotation = 360
+                        }
+                    }
+                }
+                .onChange(of: activityMode) { _, mode in
+                    if mode == .full {
+                        rotation = 0
+                        withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
+                            rotation = 360
+                        }
+                    } else {
+                        withAnimation(.none) {
+                            rotation = 0
+                        }
                     }
                 }
         }

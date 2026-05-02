@@ -45,7 +45,9 @@ struct IdleView: View {
                 pose: .peek,
                 size: 56,
                 cheekTint: appState.config.color(for: selectedCat),
-                chatty: true
+                chatty: true,
+                cadence: .decorative,
+                activityMode: appState.effectiveAnimationMode
             )
             .opacity(0.85)
             .padding(.trailing, 18)
@@ -66,6 +68,9 @@ struct IdleView: View {
                !appState.config.categories.contains(selectedCat) {
                 syncFromConfig()
             }
+        }
+        .onChange(of: appState.effectiveAnimationMode) { _, _ in
+            updateCTABreathAnimation()
         }
     }
 
@@ -263,9 +268,7 @@ struct IdleView: View {
         .buttonStyle(.plain)
         .pommyPress(hoverScale: 1.015, pressScale: 0.985)
         .onAppear {
-            withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
-                ctaBreath = true
-            }
+            updateCTABreathAnimation()
         }
     }
 
@@ -330,5 +333,18 @@ struct IdleView: View {
         dialMinutes = appState.config.focusDuration
         dialType    = .focus
         task        = ""
+    }
+
+    private func updateCTABreathAnimation() {
+        if appState.effectiveAnimationMode == .full {
+            ctaBreath = false
+            withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
+                ctaBreath = true
+            }
+        } else {
+            withAnimation(.none) {
+                ctaBreath = false
+            }
+        }
     }
 }

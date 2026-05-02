@@ -14,6 +14,8 @@ import SwiftUI
 ///   Ring 0 → ⌀ 200  |  Ring 5 → ⌀ 60   Total frame ≈ 210 × 210
 @MainActor
 struct StopwatchRingView: View {
+    @Environment(AppState.self) private var appState
+
     let elapsedSeconds: Int
     let color:          Color
     let minsPerRing:    Int
@@ -111,7 +113,13 @@ struct StopwatchRingView: View {
                 if let pose = ridingPose {
                     let angleRad = (-90.0 + activeRingProgress * 360.0) * .pi / 180.0
                     let r        = dia / 2
-                    PommyMascot(pose: pose, size: 22, cheekTint: color)
+                    PommyMascot(
+                        pose: pose,
+                        size: 22,
+                        cheekTint: color,
+                        cadence: .decorative,
+                        activityMode: appState.effectiveAnimationMode
+                    )
                         .shadow(color: color.opacity(0.45), radius: 6)
                         .offset(
                             x: CGFloat(cos(angleRad)) * r,

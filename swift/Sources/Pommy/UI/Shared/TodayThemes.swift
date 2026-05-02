@@ -51,6 +51,8 @@ private enum TodayThemeMath {
 
 @MainActor
 private struct FireflyJarView: View {
+    @Environment(AppState.self) private var appState
+
     let focusMinutes: Int
     let dailyGoalMet: Bool
     let dailyGoalMetAt: Date?
@@ -71,6 +73,14 @@ private struct FireflyJarView: View {
 
     private var countForAnimation: Int { completed }
 
+    private var timelineMinimumInterval: Double {
+        switch appState.effectiveAnimationMode {
+        case .full: return 1.0 / 20.0
+        case .throttled: return 1.0 / 8.0
+        case .frozen: return 60.0
+        }
+    }
+
     /// Cozy campfire curve: more fireflies gently enrich fire glow.
     private var campGlowProgress: Double {
         let raw = Double(completed) + partial
@@ -79,9 +89,37 @@ private struct FireflyJarView: View {
     }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            GeometryReader { geo in
+        // When frozen, render a single static frame and skip TimelineView entirely.
+        // TimelineView at any minimumInterval still wakes the SwiftUI graph + CA
+        // transaction loop on every tick; the only way to truly idle is to not
+        // schedule a timeline at all.
+        Group {
+            if appState.effectiveAnimationMode == .frozen {
+                sceneBody(at: Date().timeIntervalSinceReferenceDate)
+            } else {
+                TimelineView(.animation(minimumInterval: timelineMinimumInterval)) { context in
+                    sceneBody(at: context.date.timeIntervalSinceReferenceDate)
+                }
+            }
+        }
+        .onAppear {
+            if lastSeenCount < 0 {
+                lastSeenCount = countForAnimation
+            }
+        }
+        .onChange(of: focusMinutes) { _, _ in
+            let now = countForAnimation
+            if now > lastSeenCount {
+                arrivalIndex = now - 1
+                arrivalAt = Date()
+            }
+            lastSeenCount = now
+        }
+    }
+
+    @ViewBuilder
+    private func sceneBody(at t: Double) -> some View {
+        GeometryReader { geo in
                 let w = geo.size.width
                 let h = geo.size.height
                 // Match CampfireSceneLayer: place fireflies relative to the camp ground line, not the GeometryReader origin.
@@ -109,6 +147,7 @@ private struct FireflyJarView: View {
                         width: w,
                         height: h,
                         time: t,
+                        activityMode: appState.effectiveAnimationMode,
                         glowProgress: campGlowProgress,
                         lampStrength: lampStrength,
                         dailyGoalMet: dailyGoalMet,
@@ -172,20 +211,6 @@ private struct FireflyJarView: View {
                 .frame(width: w, height: h)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .onAppear {
-            if lastSeenCount < 0 {
-                lastSeenCount = countForAnimation
-            }
-        }
-        .onChange(of: focusMinutes) { _, _ in
-            let now = countForAnimation
-            if now > lastSeenCount {
-                arrivalIndex = now - 1
-                arrivalAt = Date()
-            }
-            lastSeenCount = now
-        }
     }
 }
 
@@ -194,6 +219,7 @@ private struct CampfireSceneLayer: View {
     let width: CGFloat
     let height: CGFloat
     let time: Double
+    let activityMode: AnimationActivityMode
     let glowProgress: Double
     let lampStrength: Double
     let dailyGoalMet: Bool
@@ -220,7 +246,9 @@ private struct CampfireSceneLayer: View {
         let logY = campY + 86 * sceneScale
         let fire = max(0.55, flicker)
         // Gentle breeze — slow, layered sines for natural sway.
-        let breeze = sin(time * 0.45) * 0.7 + sin(time * 0.18 + 1.2) * 0.4
+        let breezeFast = sin(time * 0.45) * 0.7
+        let breezeSlow = sin(time * 0.18 + 1.2) * 0.4
+        let breeze = breezeFast + breezeSlow
 
         ZStack {
             // Sky — deeper and richer as the user accumulates focus minutes.
@@ -1269,7 +1297,14 @@ private struct CampfireSceneLayer: View {
                 let pommyX = doorX + (restX - doorX) * CGFloat(walkEase)
                 let pommyY = doorY + (restY - doorY) * CGFloat(walkEase)
                 let pommyOpacity = walkEase
-                PommyMascot(pose: .sleep, size: 26 * sceneScale, cheekTint: Color(hex: "#FF6B5B"), chatty: false)
+                PommyMascot(
+                    pose: .sleep,
+                    size: 26 * sceneScale,
+                    cheekTint: Color(hex: "#FF6B5B"),
+                    chatty: false,
+                    cadence: .decorative,
+                    activityMode: activityMode
+                )
                     .opacity(pommyOpacity)
                     .position(x: pommyX, y: pommyY)
                     .allowsHitTesting(false)

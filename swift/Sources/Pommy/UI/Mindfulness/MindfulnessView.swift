@@ -35,7 +35,13 @@ struct MindfulnessView: View {
             Spacer()
 
             // Pommy hero — breathing in sync with the section
-            PommyMascot(pose: .idle, size: 110, chatty: true)
+            PommyMascot(
+                pose: .idle,
+                size: 110,
+                chatty: true,
+                cadence: .hero,
+                activityMode: appState.effectiveAnimationMode
+            )
                 .padding(.bottom, 4)
 
             VStack(spacing: Spacing.sm) {
@@ -92,7 +98,12 @@ struct MindfulnessView: View {
             withAnimation(.easeInOut(duration: 0.3)) { activeMode = .rest }
         } content: {
             VStack(spacing: 10) {
-                PommyMascot(pose: .sleep, size: 56)
+                PommyMascot(
+                    pose: .sleep,
+                    size: 56,
+                    cadence: .decorative,
+                    activityMode: appState.effectiveAnimationMode
+                )
                     .shadow(color: Color(hex: "#E8A87C").opacity(0.25), radius: 12, y: 4)
                 VStack(spacing: 4) {
                     Text("Rest")

@@ -60,7 +60,9 @@ struct TimerPanelView: View {
                         PommyMascot(
                             pose: .wave,
                             size: 28,
-                            cheekTint: appState.config.color(for: currentCategory)
+                            cheekTint: appState.config.color(for: currentCategory),
+                            cadence: .decorative,
+                            activityMode: appState.effectiveAnimationMode
                         )
                         .frame(height: 28)
                         Text("Logged it")
@@ -174,7 +176,12 @@ struct TimerPanelView: View {
 
     private var blockedByStopwatchView: some View {
         VStack(spacing: 20) {
-            PommyMascot(pose: .curious, size: 52)
+            PommyMascot(
+                pose: .curious,
+                size: 52,
+                cadence: .hero,
+                activityMode: appState.effectiveAnimationMode
+            )
             VStack(spacing: 6) {
                 Text("Stopwatch is running.")
                     .font(.system(size: 15, weight: .medium))
@@ -220,7 +227,13 @@ private struct FirstSessionCelebration: View {
             VStack(spacing: 16) {
                 ZStack {
                     PetalBurst(trigger: burst ? 1 : 0, color: tint)
-                    PommyMascot(pose: .celebrate, size: 120, cheekTint: tint)
+                    PommyMascot(
+                        pose: .celebrate,
+                        size: 120,
+                        cheekTint: tint,
+                        cadence: .hero,
+                        activityMode: .full
+                    )
                 }
                 .frame(width: 180, height: 180)
 

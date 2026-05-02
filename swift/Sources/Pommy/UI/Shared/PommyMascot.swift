@@ -29,6 +29,11 @@ enum MascotPose: String, Codable {
 /// can be re-tinted/animated freely.
 @MainActor
 struct PommyMascot: View {
+    enum Cadence {
+        case hero
+        case decorative
+    }
+
     var pose: MascotPose = .idle
     /// Visual scale. The body is 100×100 at scale 1.0.
     var size: CGFloat = 100
@@ -39,6 +44,8 @@ struct PommyMascot: View {
     /// The chat appears in a system popover so it can extend beyond panel
     /// bounds without clipping.
     var chatty: Bool = false
+    var cadence: Cadence = .hero
+    var activityMode: AnimationActivityMode = .full
 
     @State private var chatBeats: [PommyBeat] = []
     @State private var chatIndex: Int = 0
@@ -62,47 +69,69 @@ struct PommyMascot: View {
     private let stemLight    = Color(hex: "#5C8C6B")
     private let highlightCol = Color.white.opacity(0.25)
 
-    var body: some View {
-        // Single timeline drives all continuous animation. When this view is
-        // offscreen the schedule pauses automatically — no timers to invalidate.
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            let blink = t.truncatingRemainder(dividingBy: 4.0) < 0.14
-            ZStack {
-                // Soft shadow under the body
-                Ellipse()
-                    .fill(Color.black.opacity(0.35))
-                    .frame(width: size * 0.75, height: size * 0.10)
-                    .blur(radius: size * 0.04)
-                    .offset(y: size * 0.50)
+    private var minimumInterval: Double {
+        switch (activityMode, cadence) {
+        case (.full, .hero): return 1.0 / 30.0
+        case (.full, .decorative): return 1.0 / 15.0
+        case (.throttled, .hero): return 1.0 / 15.0
+        case (.throttled, .decorative): return 1.0 / 8.0
+        case (.frozen, _): return 60.0
+        }
+    }
 
-                mascot(time: t, blink: blink)
-                    .frame(width: size, height: size)
-                    .scaleEffect(scaleForBreath(time: t))
-                    .rotationEffect(.degrees(headTilt))
-                    .offset(y: bounceOffset(time: t))
-            }
-            .frame(width: size, height: size * 1.1)
-            // Only become tappable when chatty; otherwise let parents (e.g. a
-            // surrounding Button on a card) receive the tap.
-            .contentShape(Rectangle())
-            .allowsHitTesting(chatty)
-            .onTapGesture { if chatty { handleChatTap() } }
-            .popover(isPresented: chatPopoverBinding,
-                     attachmentAnchor: .rect(.bounds),
-                     arrowEdge: .top) {
-                if let beat = currentBeat {
-                    PommyChatBubbleContent(text: beat.text, tint: cheekTint)
-                        .padding(4)
+    var body: some View {
+        // When frozen, render a single static frame and skip TimelineView entirely.
+        // TimelineView at any minimumInterval still wakes the SwiftUI graph + CA
+        // transaction loop on every tick; the only way to truly idle is to not
+        // schedule a timeline at all.
+        Group {
+            if activityMode == .frozen {
+                renderedBody(at: Date().timeIntervalSinceReferenceDate)
+            } else {
+                TimelineView(.animation(minimumInterval: minimumInterval)) { context in
+                    renderedBody(at: context.date.timeIntervalSinceReferenceDate)
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: chatIndex)
-            .animation(.easeInOut(duration: 0.25), value: isChatting)
         }
         .onDisappear {
             chatTask?.cancel()
             chatTask = nil
         }
+    }
+
+    @ViewBuilder
+    private func renderedBody(at t: Double) -> some View {
+        let blink = t.truncatingRemainder(dividingBy: 4.0) < 0.14
+        ZStack {
+            // Soft shadow under the body
+            Ellipse()
+                .fill(Color.black.opacity(0.35))
+                .frame(width: size * 0.75, height: size * 0.10)
+                .blur(radius: size * 0.04)
+                .offset(y: size * 0.50)
+
+            mascot(time: t, blink: blink)
+                .frame(width: size, height: size)
+                .scaleEffect(scaleForBreath(time: t))
+                .rotationEffect(.degrees(headTilt))
+                .offset(y: bounceOffset(time: t))
+        }
+        .frame(width: size, height: size * 1.1)
+        // Only become tappable when chatty; otherwise let parents (e.g. a
+        // surrounding Button on a card) receive the tap.
+        .contentShape(Rectangle())
+        .allowsHitTesting(chatty)
+        .onTapGesture { if chatty { handleChatTap() } }
+        .popover(isPresented: chatPopoverBinding,
+                 attachmentAnchor: .rect(.bounds),
+                 arrowEdge: .top) {
+            if let beat = currentBeat {
+                PommyChatBubbleContent(text: beat.text, tint: cheekTint)
+                    .padding(4)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: chatIndex)
+        .animation(.easeInOut(duration: 0.25), value: isChatting)
     }
 
     private var currentBeat: PommyBeat? {

@@ -66,7 +66,16 @@ private final class ObserverHolder {
 }
 
 final class HideOnCloseWindowDelegate: NSObject, NSWindowDelegate {
+    weak var appState: AppState?
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Flip visibility before orderOut. orderOut does NOT fire willClose,
+        // miniaturize, or any other observed notification — without this the
+        // activity-mode signal stays at .throttled while the window is hidden.
+        MainActor.assumeIsolated {
+            appState?.setMainWindowVisibility(false)
+        }
+
         if sender.styleMask.contains(.fullScreen) {
             // Hiding a fullscreen window leaves its Space behind as a black
             // screen. Exit fullscreen first, then hide once the transition ends.
@@ -99,7 +108,7 @@ struct PommyApp: App {
         Window("Pommy", id: "main") {
             ContentView()
                 .environment(appState)
-                .background(WindowConfigurator())
+                .background(WindowConfigurator(appState: appState))
                 .onAppear {
                     Task { await appState.onLaunch() }
                 }
@@ -266,14 +275,116 @@ struct ContentView: View {
 // MARK: - Window configurator (installs hide-on-close delegate, restores position)
 
 private struct WindowConfigurator: NSViewRepresentable {
+    let appState: AppState
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
-            view.window?.delegate              = AppDelegate.hideOnCloseDelegate
-            view.window?.identifier            = NSUserInterfaceItemIdentifier("main")
-            view.window?.setFrameAutosaveName("PommyMainWindow")
+            guard let window = view.window else { return }
+            AppDelegate.hideOnCloseDelegate.appState = appState
+            window.delegate = AppDelegate.hideOnCloseDelegate
+            window.identifier = NSUserInterfaceItemIdentifier("main")
+            window.setFrameAutosaveName("PommyMainWindow")
+            context.coordinator.bind(window: window)
+            appState.setMainWindowVisibility(window.isVisible)
+            appState.setMainWindowKey(window.isKeyWindow)
         }
         return view
     }
-    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.appState = appState
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(appState: appState)
+    }
+
+    @MainActor
+    final class Coordinator {
+        var appState: AppState
+        private var observers: [NSObjectProtocol] = []
+        private weak var observedWindow: NSWindow?
+
+        init(appState: AppState) {
+            self.appState = appState
+        }
+
+        deinit {
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+
+        func bind(window: NSWindow) {
+            guard observedWindow !== window else { return }
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            observers.removeAll()
+            observedWindow = window
+
+            let center = NotificationCenter.default
+            observers.append(center.addObserver(
+                forName: NSWindow.didBecomeKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.appState.setMainWindowKey(true)
+                    self?.appState.setMainWindowVisibility(true)
+                }
+            })
+            observers.append(center.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.appState.setMainWindowKey(false)
+                }
+            })
+            observers.append(center.addObserver(
+                forName: NSWindow.didMiniaturizeNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.appState.setMainWindowVisibility(false)
+                }
+            })
+            observers.append(center.addObserver(
+                forName: NSWindow.didDeminiaturizeNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.appState.setMainWindowVisibility(true)
+                }
+            })
+            observers.append(center.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.appState.setMainWindowVisibility(false)
+                }
+            })
+            // Authoritative visibility: AppKit reports occlusion state for hide,
+            // Spaces switches, full-screen-app coverage, etc. orderOut does not
+            // fire willClose/miniaturize, so this is the signal of last resort.
+            observers.append(center.addObserver(
+                forName: NSWindow.didChangeOcclusionStateNotification,
+                object: window,
+                queue: .main
+            ) { [weak self, weak window] _ in
+                guard let window else { return }
+                let isVisible = window.occlusionState.contains(.visible)
+                MainActor.assumeIsolated {
+                    self?.appState.setMainWindowVisibility(isVisible)
+                }
+            })
+        }
+    }
 }

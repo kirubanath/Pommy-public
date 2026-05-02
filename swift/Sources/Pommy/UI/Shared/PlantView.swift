@@ -21,6 +21,7 @@ struct PlantView: View {
     var growth: Double
     var size: CGFloat = 100
 
+    @Environment(AppState.self) private var appState
     @State private var sway: Bool = false
 
     // Convenience: clamped growth [0, 1]
@@ -47,7 +48,18 @@ struct PlantView: View {
         .frame(width: size, height: size)
         .onAppear {
             // Start the gentle sway once mounted; it drives the flower oscillation.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { sway = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                if appState.effectiveAnimationMode != .frozen { sway = true }
+            }
+        }
+        .onChange(of: appState.effectiveAnimationMode) { _, mode in
+            // Cancel the .repeatForever animation when frozen so the SwiftUI graph
+            // stops scheduling updates; restart cleanly when active again.
+            if mode == .frozen {
+                withAnimation(.none) { sway = false }
+            } else if !sway {
+                sway = true
+            }
         }
     }
 

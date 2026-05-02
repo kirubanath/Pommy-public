@@ -176,7 +176,9 @@ struct StatsView: View {
                             pose: weekTotal > 0 ? .idle : .peek,
                             size: 40,
                             cheekTint: heroTint,
-                            chatty: true
+                            chatty: true,
+                            cadence: .decorative,
+                            activityMode: appState.effectiveAnimationMode
                         )
                         PlantView(growth: weeklyPlantGrowth, size: 44)
                     }

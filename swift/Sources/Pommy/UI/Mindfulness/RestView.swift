@@ -20,6 +20,14 @@ struct RestView: View {
 
     private var totalSeconds: Int { appState.config.restDurationMins * 60 }
     private var remaining:    Int { max(0, totalSeconds - elapsed) }
+    private var isVisualsActive: Bool { appState.effectiveAnimationMode != .frozen }
+    private var moteInterval: Double {
+        switch appState.effectiveAnimationMode {
+        case .full: return 1.0 / 15.0
+        case .throttled: return 1.0 / 6.0
+        case .frozen: return 60.0
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -36,7 +44,7 @@ struct RestView: View {
             .ignoresSafeArea()
 
             // Drifting ambient motes — fireflies + dust
-            TimelineView(.animation(minimumInterval: 1.0 / 15.0)) { context in
+            TimelineView(.animation(minimumInterval: moteInterval)) { context in
                 let moteDrift = context.date.timeIntervalSinceReferenceDate
                 ForEach(0..<8, id: \.self) { i in
                     ambientMote(index: i, moteDrift: moteDrift)
@@ -68,6 +76,9 @@ struct RestView: View {
         .onAppear {
             startGrassAnimation()
             startSession()
+        }
+        .onChange(of: appState.effectiveAnimationMode) { _, _ in
+            startGrassAnimation()
         }
         .onDisappear { stopAll() }
     }
@@ -102,7 +113,12 @@ struct RestView: View {
             .offset(y: 42)
 
             // Sleeping Pommy with soft drop shadow so it sits "on" the grass
-            PommyMascot(pose: .sleep, size: 180)
+            PommyMascot(
+                pose: .sleep,
+                size: 180,
+                cadence: .hero,
+                activityMode: appState.effectiveAnimationMode
+            )
                 .shadow(color: Color.black.opacity(0.4), radius: 24, y: 8)
                 .offset(y: -4)
         }
@@ -212,9 +228,11 @@ struct RestView: View {
 
     private func startGrassAnimation() {
         stopGrassAnimation()
-        let t = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+        guard isVisualsActive else { return }
+        let interval: Double = appState.effectiveAnimationMode == .full ? 0.05 : 0.16
+        let t = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
             Task { @MainActor in
-                grassPhase += 0.05
+                grassPhase += interval
             }
         }
         RunLoop.main.add(t, forMode: .common)

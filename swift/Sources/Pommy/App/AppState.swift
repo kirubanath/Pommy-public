@@ -1,6 +1,12 @@
 import Foundation
 import SwiftUI
 
+enum AnimationActivityMode: Equatable {
+    case full
+    case throttled
+    case frozen
+}
+
 // MARK: - Sidebar page
 
 enum SidebarPage: String, CaseIterable, Identifiable {
@@ -60,8 +66,21 @@ final class AppState {
 
     private var systemFeedback: SystemFeedback?
     private var feedbackTimer:  Timer?
+    private var lifecycleObservers: [NSObjectProtocol] = []
+    private var didRegisterLifecycleObservers = false
+    private var launchTaskStarted = false
+    private var autoSyncTask: Task<Void, Never>?
 
     var credentials: NotionCredentials? = nil
+    var isAppActive: Bool = true
+    var isMainWindowVisible: Bool = true
+    var isMainWindowKey: Bool = true
+
+    var effectiveAnimationMode: AnimationActivityMode {
+        if !isAppActive || !isMainWindowVisible { return .frozen }
+        if !isMainWindowKey { return .throttled }
+        return .full
+    }
 
     // MARK: Navigation
 
@@ -97,6 +116,13 @@ final class AppState {
     // MARK: - Launch
 
     func onLaunch() async {
+        guard !launchTaskStarted else {
+            refreshActivityStateFromSystem()
+            handleActivityModeTransition()
+            return
+        }
+        launchTaskStarted = true
+
         do {
             try AppPaths.ensureDirectoriesExist()
             try config.load()
@@ -116,23 +142,37 @@ final class AppState {
         startAutoSync()
         startSystemFeedback()
         observeAppLifecycle()
+        refreshActivityStateFromSystem()
+        handleActivityModeTransition()
     }
 
     private func observeAppLifecycle() {
-        NotificationCenter.default.addObserver(
+        guard !didRegisterLifecycleObservers else { return }
+        didRegisterLifecycleObservers = true
+
+        let resignObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didResignActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.pauseUITickers() }
+            MainActor.assumeIsolated {
+                self?.isAppActive = false
+                self?.handleActivityModeTransition()
+            }
         }
-        NotificationCenter.default.addObserver(
+        lifecycleObservers.append(resignObserver)
+
+        let becomeObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.resumeUITickers() }
+            MainActor.assumeIsolated {
+                self?.isAppActive = true
+                self?.handleActivityModeTransition()
+            }
         }
+        lifecycleObservers.append(becomeObserver)
     }
 
     func pauseUITickers() {
@@ -144,6 +184,16 @@ final class AppState {
         guard feedbackTimer == nil else { return }
         scheduleFeedbackTimer()
         systemFeedback?.tick()
+    }
+
+    func setMainWindowVisibility(_ isVisible: Bool) {
+        isMainWindowVisible = isVisible
+        handleActivityModeTransition()
+    }
+
+    func setMainWindowKey(_ isKey: Bool) {
+        isMainWindowKey = isKey
+        handleActivityModeTransition()
     }
 
     private func startSystemFeedback() {
@@ -386,14 +436,33 @@ final class AppState {
     /// Faster cadence keeps the calendar in step with edits made in Notion
     /// without hammering the API (a 60-second poll is well under any limit).
     private func startAutoSync() {
-        Task { @MainActor in
+        guard autoSyncTask == nil else { return }
+        autoSyncTask = Task { @MainActor in
             while true {
-                try? await Task.sleep(for: .seconds(60))
+                let interval: Double = isMainWindowVisible ? 30 : 60
+                try? await Task.sleep(for: .seconds(interval))
                 guard let creds = credentials else { continue }
+                guard isAppActive else { continue }
                 // Skip if a sync is already in progress.
                 guard notionSyncStatus != .syncing else { continue }
                 await syncNotionStats(creds: creds)
             }
+        }
+    }
+
+    private func refreshActivityStateFromSystem() {
+        isAppActive = NSApp.isActive
+        if let mainWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
+            isMainWindowVisible = mainWindow.isVisible
+            isMainWindowKey = mainWindow.isKeyWindow
+        }
+    }
+
+    private func handleActivityModeTransition() {
+        if effectiveAnimationMode == .frozen {
+            pauseUITickers()
+        } else {
+            resumeUITickers()
         }
     }
 

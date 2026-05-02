@@ -47,6 +47,9 @@ struct StopwatchPanelView: View {
         .onChange(of: appState.session.state) { _, new in
             if new == .idle { syncFromConfig() }
         }
+        .onChange(of: appState.effectiveAnimationMode) { _, mode in
+            idleBreath = mode == .full
+        }
     }
 
     // MARK: - Background tint
@@ -104,7 +107,12 @@ struct StopwatchPanelView: View {
 
     private var blockedByTimerView: some View {
         VStack(spacing: 20) {
-            PommyMascot(pose: .curious, size: 52)
+            PommyMascot(
+                pose: .curious,
+                size: 52,
+                cadence: .hero,
+                activityMode: appState.effectiveAnimationMode
+            )
             VStack(spacing: 6) {
                 Text("Timer is running.")
                     .font(.system(size: 15, weight: .medium))
@@ -148,7 +156,9 @@ struct StopwatchPanelView: View {
                         .foregroundStyle(Color.secondary.opacity(idleBreath ? 0.45 : 0.30))
                         .scaleEffect(idleBreath ? 1.015 : 1.0)
                         .animation(
-                            .easeInOut(duration: 5).repeatForever(autoreverses: true),
+                            appState.effectiveAnimationMode == .full
+                                ? .easeInOut(duration: 5).repeatForever(autoreverses: true)
+                                : .linear(duration: 0),
                             value: idleBreath
                         )
                     Text("freeform · no timer, just you")
@@ -158,7 +168,7 @@ struct StopwatchPanelView: View {
                         .foregroundStyle(.tertiary)
                 }
                 .padding(.vertical, 28)
-                .onAppear { idleBreath = true }
+                .onAppear { idleBreath = appState.effectiveAnimationMode == .full }
 
                 taskField
 
@@ -175,7 +185,13 @@ struct StopwatchPanelView: View {
             .padding(.bottom, 24)
         }
         .overlay(alignment: .bottomTrailing) {
-            PommyMascot(pose: .peek, size: 56, chatty: true)
+            PommyMascot(
+                pose: .peek,
+                size: 56,
+                chatty: true,
+                cadence: .decorative,
+                activityMode: appState.effectiveAnimationMode
+            )
                 .opacity(0.85)
                 .padding(.trailing, 20)
                 .padding(.bottom, 12)
@@ -239,13 +255,21 @@ struct StopwatchPanelView: View {
 
             VStack(spacing: 6) {
                 if appState.session.sessionType == .break {
-                    PommyMascot(pose: .sleep, size: 64, cheekTint: Color(hex: "#7CB893"))
+                    PommyMascot(
+                        pose: .sleep,
+                        size: 64,
+                        cheekTint: Color(hex: "#7CB893"),
+                        cadence: .hero,
+                        activityMode: appState.effectiveAnimationMode
+                    )
                         .frame(height: 70)
                 } else if isStopwatchHardMode {
                     PommyMascot(
                         pose: .focusHard,
                         size: 64,
-                        cheekTint: appState.config.color(for: appState.session.category)
+                        cheekTint: appState.config.color(for: appState.session.category),
+                        cadence: .hero,
+                        activityMode: appState.effectiveAnimationMode
                     )
                     .frame(height: 70)
                 }

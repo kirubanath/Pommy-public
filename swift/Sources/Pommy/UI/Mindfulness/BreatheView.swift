@@ -13,6 +13,7 @@ struct BreatheView: View {
     @State private var isRunning:  Bool        = false
     @State private var isPaused:   Bool        = false
     @State private var timer:      Timer?      = nil
+    @State private var phaseTask:  Task<Void, Never>? = nil
 
     private var totalSeconds: Int { appState.config.breatheDurationMins * 60 }
     private var remaining:    Int { max(0, totalSeconds - elapsed) }
@@ -59,7 +60,19 @@ struct BreatheView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear  { startSession() }
-        .onDisappear { stopTimer() }
+        .onChange(of: appState.effectiveAnimationMode) { _, newMode in
+            if newMode == .frozen {
+                phaseTask?.cancel()
+                phaseTask = nil
+            } else if isRunning && !isPaused {
+                runPhase(phase)
+            }
+        }
+        .onDisappear {
+            phaseTask?.cancel()
+            phaseTask = nil
+            stopTimer()
+        }
     }
 
     // MARK: - Controls
@@ -110,6 +123,8 @@ struct BreatheView: View {
     private func pauseSession() {
         guard isRunning else { return }
         isPaused = true
+        phaseTask?.cancel()
+        phaseTask = nil
         stopTimer()
     }
 
@@ -123,6 +138,8 @@ struct BreatheView: View {
     private func stopSession() {
         isRunning = false
         isPaused  = false
+        phaseTask?.cancel()
+        phaseTask = nil
         stopTimer()
         withAnimation(.easeInOut(duration: 0.4)) { scale = 0.55 }
     }
@@ -130,15 +147,17 @@ struct BreatheView: View {
     // MARK: - Breath cycle
 
     private func runPhase(_ p: BreathPhase) {
-        guard isRunning, !isPaused else { return }
+        guard isRunning, !isPaused, appState.effectiveAnimationMode != .frozen else { return }
+        phaseTask?.cancel()
+        phaseTask = nil
         phase = p
         switch p {
         case .inhale:
             scale = 1.0
-            after(p.duration) { runPhase(.exhale) }
+            schedulePhaseTransition(after: p.duration, next: .exhale)
         case .exhale:
             scale = 0.55
-            after(p.duration) { runPhase(.inhale) }
+            schedulePhaseTransition(after: p.duration, next: .inhale)
         }
     }
 
@@ -163,11 +182,11 @@ struct BreatheView: View {
         timer = nil
     }
 
-    private func after(_ delay: Double, block: @escaping @MainActor () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            Task { @MainActor in
-                block()
-            }
+    private func schedulePhaseTransition(after delay: Double, next: BreathPhase) {
+        phaseTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            runPhase(next)
         }
     }
 

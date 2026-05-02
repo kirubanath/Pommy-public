@@ -11,8 +11,6 @@ struct RunningView: View {
     @State private var ringBreath:    Bool = false
     @State private var overflowGlow:  Bool = false
 
-    @State private var windowIsKey: Bool = true
-
     private static let ringDiameter: CGFloat = 220
     private static let lineWidth:    CGFloat = 12
 
@@ -38,22 +36,23 @@ struct RunningView: View {
                 .padding(.bottom, 28)
         }
         .padding(.horizontal, 24)
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            windowIsKey = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                ringBreath   = true
-                overflowGlow = true
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
-            windowIsKey = false
-            withAnimation(.none) {
-                ringBreath   = false
-                overflowGlow = false
+        .onChange(of: appState.effectiveAnimationMode) { _, mode in
+            if mode == .frozen {
+                withAnimation(.none) {
+                    ringBreath = false
+                    overflowGlow = false
+                }
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    ringBreath = true
+                    overflowGlow = true
+                }
             }
         }
         .onAppear { startTerminusPulse() }
     }
+    private var shouldAnimateEffects: Bool { appState.effectiveAnimationMode == .full }
+
 
     // MARK: - Mid-session encouragement
 
@@ -166,11 +165,11 @@ struct RunningView: View {
                 endRadius: Self.ringDiameter * 0.55
             )
             .frame(width: Self.ringDiameter, height: Self.ringDiameter)
-            .scaleEffect(ringBreath && !isPaused && windowIsKey ? 1.06 : 0.94)
+            .scaleEffect(ringBreath && !isPaused && shouldAnimateEffects ? 1.06 : 0.94)
             .opacity(isPaused ? 0.4 : 1.0)
             .blur(radius: 8)
             .animation(
-                windowIsKey ? .easeInOut(duration: 4).repeatForever(autoreverses: true) : .linear(duration: 0),
+                shouldAnimateEffects ? .easeInOut(duration: 4).repeatForever(autoreverses: true) : .linear(duration: 0),
                 value: ringBreath
             )
 
@@ -183,9 +182,9 @@ struct RunningView: View {
             ringArc
                 .blur(radius: 12)
                 .opacity(isPaused ? 0.0 : 0.55)
-                .scaleEffect(appState.session.isOverflow && overflowGlow && windowIsKey ? 1.05 : 1.0)
+                .scaleEffect(appState.session.isOverflow && overflowGlow && shouldAnimateEffects ? 1.05 : 1.0)
                 .animation(
-                    windowIsKey && appState.session.isOverflow
+                    shouldAnimateEffects && appState.session.isOverflow
                         ? .easeInOut(duration: 1.5).repeatForever(autoreverses: true)
                         : .default,
                     value: overflowGlow
@@ -270,7 +269,7 @@ struct RunningView: View {
 
         let pose: MascotPose = isPaused ? .curious : .focus
 
-        return PommyMascot(pose: pose, size: 26)
+        return PommyMascot(pose: pose, size: 26, cadence: .decorative, activityMode: appState.effectiveAnimationMode)
             .shadow(color: ringColor.opacity(0.45), radius: 8)
             .offset(x: dx, y: dy)
             .animation(.linear(duration: 1), value: s.elapsedSeconds)
@@ -285,14 +284,22 @@ struct RunningView: View {
         return VStack(spacing: 6) {
             if isBreak {
                 // Break: relaxing Pommy hero, time underneath. No leading dot.
-                PommyMascot(pose: .sleep, size: 64, cheekTint: Color(hex: "#7CB893"))
+                PommyMascot(
+                    pose: .sleep,
+                    size: 64,
+                    cheekTint: Color(hex: "#7CB893"),
+                    cadence: .hero,
+                    activityMode: appState.effectiveAnimationMode
+                )
                     .frame(height: 70)
             } else if overflow {
                 // Overflow: headband Pommy, focusing hard.
                 PommyMascot(
                     pose: .focusHard,
                     size: 64,
-                    cheekTint: appState.config.color(for: s.category)
+                    cheekTint: appState.config.color(for: s.category),
+                    cadence: .hero,
+                    activityMode: appState.effectiveAnimationMode
                 )
                 .frame(height: 70)
             }

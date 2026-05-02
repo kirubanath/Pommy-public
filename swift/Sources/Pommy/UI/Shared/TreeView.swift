@@ -127,6 +127,8 @@ struct TreeView: View {
 /// A clustered forest layout where one tree completes every hour.
 @MainActor
 struct TreeForestClusterView: View {
+    @Environment(AppState.self) private var appState
+
     var focusMinutes: Int
 
     private static let cycleMinutes: Int = 60
@@ -173,36 +175,56 @@ struct TreeForestClusterView: View {
         }
     }
 
+    private var timelineMinimumInterval: Double {
+        switch appState.effectiveAnimationMode {
+        case .full: return 1.0 / 20.0
+        case .throttled: return 1.0 / 10.0
+        case .frozen: return 60.0
+        }
+    }
+
     var body: some View {
-        TimelineView(.animation) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            GeometryReader { geo in
-                let placements = makePlacements(in: geo.size)
-
-                ZStack(alignment: .bottom) {
-                    forestFloor(size: geo.size, time: t)
-                    depthHaze(size: geo.size, time: t)
-                    enchantmentLights(placements: placements, treeSize: treeSize, size: geo.size, time: t)
-
-                    ForEach(placements) { placement in
-                        let phase = Double(placement.id) * 0.91
-                        let sway = sin(t * 0.58 + phase) * (0.55 + placement.depthShade * 0.55)
-                        let bob = cos(t * 0.44 + phase) * (0.6 + placement.depthShade * 0.5)
-                        TreeView(
-                            growth: placement.growth,
-                            size: treeSize * placement.scale,
-                            variant: placement.variant,
-                            depthShade: placement.depthShade
-                        )
-                        .rotationEffect(.degrees(sway), anchor: .bottom)
-                        .offset(y: bob)
-                        .opacity(placement.opacity)
-                        .position(placement.point)
-                        .zIndex(Double(placement.point.y))
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // When frozen, render a single static frame and skip TimelineView entirely.
+        // TimelineView at any minimumInterval still wakes the SwiftUI graph + CA
+        // transaction loop on every tick; the only way to truly idle is to not
+        // schedule a timeline at all.
+        if appState.effectiveAnimationMode == .frozen {
+            forestBody(at: Date().timeIntervalSinceReferenceDate)
+        } else {
+            TimelineView(.animation(minimumInterval: timelineMinimumInterval)) { context in
+                forestBody(at: context.date.timeIntervalSinceReferenceDate)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func forestBody(at t: Double) -> some View {
+        GeometryReader { geo in
+            let placements = makePlacements(in: geo.size)
+
+            ZStack(alignment: .bottom) {
+                forestFloor(size: geo.size, time: t)
+                depthHaze(size: geo.size, time: t)
+                enchantmentLights(placements: placements, treeSize: treeSize, size: geo.size, time: t)
+
+                ForEach(placements) { placement in
+                    let phase = Double(placement.id) * 0.91
+                    let sway = sin(t * 0.58 + phase) * (0.55 + placement.depthShade * 0.55)
+                    let bob = cos(t * 0.44 + phase) * (0.6 + placement.depthShade * 0.5)
+                    TreeView(
+                        growth: placement.growth,
+                        size: treeSize * placement.scale,
+                        variant: placement.variant,
+                        depthShade: placement.depthShade
+                    )
+                    .rotationEffect(.degrees(sway), anchor: .bottom)
+                    .offset(y: bob)
+                    .opacity(placement.opacity)
+                    .position(placement.point)
+                    .zIndex(Double(placement.point.y))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
