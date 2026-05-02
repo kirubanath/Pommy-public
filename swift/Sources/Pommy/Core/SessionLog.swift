@@ -312,6 +312,14 @@ final class SessionLog {
         try? writeToDisk()
     }
 
+    /// Re-queue a permanently-failed entry so the outbox will try again.
+    func retryPush(id: UUID) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        guard entries[idx].notion_page_id == nil else { return }
+        entries[idx].pending_push = true
+        try? writeToDisk()
+    }
+
     /// Discard a pending (unsynced) entry. Only valid for entries that have never
     /// been pushed to Notion (notion_page_id == nil). For synced entries, delete
     /// from Notion first — reconcile will drop the local mirror automatically.

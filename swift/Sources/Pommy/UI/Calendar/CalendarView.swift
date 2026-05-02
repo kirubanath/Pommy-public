@@ -316,6 +316,7 @@ struct CalendarView: View {
         let isExpanded = expandedEntryID == entry.id
         let isBreak    = entry.isBreak
         let isPending  = entry.pending_push && entry.notion_page_id == nil
+        let isFailed   = !entry.pending_push && entry.notion_page_id == nil && appState.credentials != nil
         let dotColor   = isBreak ? Color(white: 0.45) : appState.config.color(for: entry.category)
 
         return Button {
@@ -339,6 +340,11 @@ struct CalendarView: View {
                                 .fill(Color.yellow.opacity(0.8))
                                 .frame(width: 5, height: 5)
                                 .help("Not yet synced to Notion")
+                        } else if isFailed {
+                            Circle()
+                                .fill(Color.red.opacity(0.7))
+                                .frame(width: 5, height: 5)
+                                .help("Push to Notion failed — tap to retry")
                         }
                         Text("\(entry.duration_mins)m")
                             .font(.system(size: 10))
@@ -371,23 +377,42 @@ struct CalendarView: View {
                                 .italic()
                         }
 
-                        if isPending {
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    expandedEntryID = nil
+                        if isPending || isFailed {
+                            HStack(spacing: 6) {
+                                if isFailed {
+                                    Button {
+                                        appState.sessionLog.retryPush(id: entry.id)
+                                        if appState.config.notionSyncEnabled {
+                                            Task.detached { await NotionOutbox.shared.kick() }
+                                        }
+                                    } label: {
+                                        Text("Retry")
+                                            .font(.system(size: 9, weight: .medium))
+                                            .foregroundStyle(Color.orange.opacity(0.85))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.orange.opacity(0.08), in: Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Try pushing this session to Notion again")
                                 }
-                                appState.sessionLog.discardEntry(id: entry.id)
-                            } label: {
-                                Text("Discard")
-                                    .font(.system(size: 9, weight: .medium))
-                                    .foregroundStyle(Color.red.opacity(0.75))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.red.opacity(0.08), in: Capsule())
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        expandedEntryID = nil
+                                    }
+                                    appState.sessionLog.discardEntry(id: entry.id)
+                                } label: {
+                                    Text("Discard")
+                                        .font(.system(size: 9, weight: .medium))
+                                        .foregroundStyle(Color.red.opacity(0.75))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.red.opacity(0.08), in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .help("Remove this session — it has not been pushed to Notion")
                             }
-                            .buttonStyle(.plain)
                             .padding(.top, 4)
-                            .help("Remove this session — it has not been pushed to Notion yet")
                         }
                     }
                     .padding(.leading, 13)
