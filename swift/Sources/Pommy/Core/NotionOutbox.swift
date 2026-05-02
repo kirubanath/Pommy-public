@@ -38,12 +38,14 @@ actor NotionOutbox {
         var attempt = 0
 
         while !Task.isCancelled {
+            guard await appState.config.notionSyncEnabled else { return }
             guard let creds = await appState.credentials else { return }
             let pendingIDs = await appState.sessionLog.pendingEntries.map { $0.id }
             guard !pendingIDs.isEmpty else { return }
 
             let config = await appState.config
             var anyRetryable = false
+            var retryAfterOverride: Double? = nil
 
             for id in pendingIDs {
                 guard !Task.isCancelled else { return }
@@ -67,19 +69,29 @@ actor NotionOutbox {
                     )
                     await appState.sessionLog.attachNotionPageID(id: id, pageID: pageID)
                 } catch NotionError.saveFailedHTTP(let code, let msg)
-                    where code >= 400 && code < 500 && code != 401 && code != 429 {
-                    // Permanent client error — stop retrying this entry.
+                    where code >= 400 && code < 500 && code != 401 {
+                    // Permanent client error (non-auth 4xx) — stop retrying this entry.
                     await appState.sessionLog.markPushFailed(id: id)
                     await appState.reportOutboxError("Push failed (HTTP \(code)): \(msg)")
+                } catch NotionError.saveFailedHTTP(401, _) {
+                    // Revoked token — surface error and abort drain; entries stay pending
+                    // so they retry automatically when the user reconnects in Settings.
+                    await appState.reportOutboxError("Notion token is invalid. Reconnect in Settings.")
+                    return
+                } catch NotionError.rateLimited(let delay) {
+                    // Honor Retry-After; use the largest value if multiple entries are rate-limited.
+                    anyRetryable = true
+                    retryAfterOverride = max(retryAfterOverride ?? 0, delay)
                 } catch {
-                    // Network error, 401, 429, 5xx — all retryable.
+                    // Network error, 5xx — retryable.
                     anyRetryable = true
                 }
             }
 
             if !anyRetryable { return }
 
-            let delay = attempt < backoff.count ? backoff[attempt] : 30
+            let delay = retryAfterOverride ?? (attempt < backoff.count ? backoff[attempt] : 30)
+            retryAfterOverride = nil
             attempt += 1
             try? await Task.sleep(for: .seconds(delay))
         }
@@ -101,6 +113,10 @@ actor NotionOutbox {
     private func handleNetworkChange(satisfied: Bool) {
         defer { lastNetworkSatisfied = satisfied }
         guard satisfied, !lastNetworkSatisfied else { return }
-        kick()
+        Task {
+            let syncEnabled = await appState?.config.notionSyncEnabled ?? true
+            guard syncEnabled else { return }
+            kick()
+        }
     }
 }

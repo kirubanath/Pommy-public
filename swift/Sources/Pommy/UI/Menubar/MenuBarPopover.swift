@@ -119,6 +119,11 @@ struct MenuBarPopover: View {
                     NSApp.activate(ignoringOtherApps: true)
                     appState.selectedPage = .settings
                 }
+        case .paused:
+            Circle()
+                .fill(Color.secondary.opacity(0.3))
+                .frame(width: 7, height: 7)
+                .help("Sync paused")
         }
     }
 

@@ -105,7 +105,7 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .pommyPress(hoverScale: 1.04, pressScale: 0.94)
         .help(syncHelp)
-        .disabled(appState.notionSyncStatus == .syncing)
+        .disabled(appState.notionSyncStatus == .syncing || appState.syncDotState == .paused)
     }
 
     private var syncIconColor: Color {
@@ -113,6 +113,7 @@ struct SidebarView: View {
         case .failed:   return Color.red.opacity(0.75)
         case .ok:       return Color.green.opacity(0.75)
         case .pending:  return .secondary
+        case .paused:   return Color.secondary.opacity(0.35)
         }
     }
 
@@ -173,6 +174,7 @@ struct SidebarView: View {
         case .pending:       return appState.notionSyncStatus == .syncing ? "Syncing…" : "Pushing to Notion…"
         case .ok:            return "Synced"
         case .failed(let m): return "Sync failed: \(m)"
+        case .paused:        return "Sync paused — enable in Notion settings"
         }
     }
 }

@@ -68,6 +68,8 @@ private struct ConfigPayload: Codable {
     var ambient_sound:         String?
     var ambient_volume:        Double?
     var stats_today_theme:     String?
+    var min_session_minutes:   Int?
+    var notion_sync_enabled:   Bool?
 }
 
 // MARK: - Config (live, observable)
@@ -127,6 +129,12 @@ final class Config {
     var ambientSound:        AmbientSound = .rain
     var ambientVolume:       Double       = 0.7
     var statsTodayTheme:     StatsTodayTheme = .fireflyJar
+    /// Sessions shorter than this are silently discarded (not logged locally or pushed to Notion).
+    /// Set to 0 to disable the gate.
+    var minSessionMinutes:   Int         = 10
+    /// When false, sessions are saved locally but nothing is pushed or pulled from Notion
+    /// until the user re-enables. All pending entries drain automatically on re-enable.
+    var notionSyncEnabled:   Bool        = true
 
     // MARK: - Load / save
 
@@ -167,6 +175,8 @@ final class Config {
         ambientSound        = AmbientSound(rawValue: p.ambient_sound ?? "") ?? .rain
         ambientVolume       = p.ambient_volume ?? 0.7
         statsTodayTheme     = StatsTodayTheme(rawValue: p.stats_today_theme ?? "") ?? .fireflyJar
+        minSessionMinutes   = p.min_session_minutes    ?? 10
+        notionSyncEnabled   = p.notion_sync_enabled    ?? true
     }
 
     func save() throws {
@@ -197,7 +207,9 @@ final class Config {
             rest_duration_mins:      restDurationMins,
             ambient_sound:           ambientSound.rawValue,
             ambient_volume:          ambientVolume,
-            stats_today_theme:       statsTodayTheme.rawValue
+            stats_today_theme:       statsTodayTheme.rawValue,
+            min_session_minutes:     minSessionMinutes,
+            notion_sync_enabled:     notionSyncEnabled
         )
         let encoder           = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

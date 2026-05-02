@@ -118,6 +118,16 @@ struct NotionClient {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let msg = String(data: data, encoding: .utf8) ?? "unknown error"
             if let http = response as? HTTPURLResponse {
+                if http.statusCode == 429 {
+                    let retryAfter: TimeInterval
+                    if let header = http.value(forHTTPHeaderField: "Retry-After"),
+                       let seconds = Double(header) {
+                        retryAfter = seconds
+                    } else {
+                        retryAfter = 30
+                    }
+                    throw NotionError.rateLimited(retryAfter)
+                }
                 throw NotionError.saveFailedHTTP(http.statusCode, msg)
             }
             throw NotionError.saveFailed(msg)
@@ -371,15 +381,17 @@ struct NotionClient {
 enum NotionError: Error, LocalizedError {
     case saveFailed(String)
     case saveFailedHTTP(Int, String)  // (httpStatusCode, body)
+    case rateLimited(TimeInterval)    // Retry-After delay in seconds
     case validationFailed(String)
     case queryFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .saveFailed(let m):             return "Notion save failed: \(m)"
+        case .saveFailed(let m):               return "Notion save failed: \(m)"
         case .saveFailedHTTP(let code, let m): return "Notion save failed (HTTP \(code)): \(m)"
-        case .validationFailed(let m):       return "Notion validation failed: \(m)"
-        case .queryFailed(let m):            return "Notion query failed: \(m)"
+        case .rateLimited(let s):              return "Notion rate limited — retry after \(Int(s))s"
+        case .validationFailed(let m):         return "Notion validation failed: \(m)"
+        case .queryFailed(let m):              return "Notion query failed: \(m)"
         }
     }
 }

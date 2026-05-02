@@ -50,6 +50,7 @@ enum NotionSyncStatus: Equatable {
 enum SyncDotState: Equatable {
     case ok
     case pending
+    case paused
     case failed(String)
 }
 
@@ -91,6 +92,8 @@ final class AppState {
     }
 
     var syncDotState: SyncDotState {
+        guard credentials != nil else { return .paused }
+        if !config.notionSyncEnabled { return .paused }
         if case .failed(let m) = notionSyncStatus { return .failed(m) }
         if notionSyncStatus == .syncing || sessionLog.pendingPushCount > 0 { return .pending }
         return .ok
@@ -152,12 +155,15 @@ final class AppState {
         session.targetSeconds = config.focusDuration * 60
 
         await sessionLog.load()
+        sessionLog.cleanupBelowMinimum(minMinutes: config.minSessionMinutes)
         await NotionOutbox.shared.configure(appState: self)
 
-        if let creds = credentials {
-            await syncNotionStats(creds: creds)
-        } else {
-            Task.detached { await NotionOutbox.shared.kick() }
+        if config.notionSyncEnabled {
+            if let creds = credentials {
+                await syncNotionStats(creds: creds)
+            } else {
+                Task.detached { await NotionOutbox.shared.kick() }
+            }
         }
 
         startAutoSync()
@@ -191,8 +197,10 @@ final class AppState {
             MainActor.assumeIsolated {
                 self?.isAppActive = true
                 self?.handleActivityModeTransition()
+                if self?.config.notionSyncEnabled == true {
+                    Task.detached { await NotionOutbox.shared.kick() }
+                }
             }
-            Task.detached { await NotionOutbox.shared.kick() }
         }
         lifecycleObservers.append(becomeObserver)
     }
@@ -216,7 +224,7 @@ final class AppState {
     func setMainWindowKey(_ isKey: Bool) {
         isMainWindowKey = isKey
         handleActivityModeTransition()
-        if isKey, let creds = credentials, notionSyncStatus != .syncing {
+        if isKey, config.notionSyncEnabled, let creds = credentials, notionSyncStatus != .syncing {
             Task { await syncNotionStats(creds: creds) }
         }
     }
@@ -272,6 +280,16 @@ final class AppState {
 
     /// Stop sheet → [Save]. Local-first: appends instantly, pushes to Notion in background.
     func saveSession() async {
+        // Silently discard sessions shorter than the configured minimum.
+        // Catches accidental start/stop without cluttering the log or Notion.
+        if config.minSessionMinutes > 0, session.durationMins < config.minSessionMinutes {
+            showStopSheet      = false
+            stopSheetNotes     = ""
+            isStopwatchSession = false
+            session.reset()
+            return
+        }
+
         let combinedNotes = [notes, stopSheetNotes]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -303,7 +321,9 @@ final class AppState {
             showSavedConfirmation = false
         }
 
-        Task.detached { await NotionOutbox.shared.kick() }
+        if config.notionSyncEnabled {
+            Task.detached { await NotionOutbox.shared.kick() }
+        }
     }
 
     /// Stop sheet → [Discard].
@@ -437,9 +457,9 @@ final class AppState {
             while true {
                 let interval: Double = isMainWindowVisible ? 30 : 60
                 try? await Task.sleep(for: .seconds(interval))
+                guard config.notionSyncEnabled else { continue }
                 guard let creds = credentials else { continue }
                 guard isAppActive else { continue }
-                // Skip if a sync is already in progress.
                 guard notionSyncStatus != .syncing else { continue }
                 await syncNotionStats(creds: creds)
             }

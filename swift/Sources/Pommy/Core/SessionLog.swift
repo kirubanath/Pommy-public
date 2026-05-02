@@ -259,6 +259,22 @@ final class SessionLog {
         }
     }
 
+    // MARK: Cleanup
+
+    /// Removes orphaned short sessions — entries that are below the minimum
+    /// duration, never made it to Notion (no page ID), and are not pending push.
+    /// Safe to run on launch; leaves pending entries and synced entries untouched.
+    func cleanupBelowMinimum(minMinutes: Int) {
+        guard minMinutes > 0 else { return }
+        let before = entries.count
+        entries.removeAll {
+            $0.duration_mins < minMinutes &&
+            $0.notion_page_id == nil &&
+            !$0.pending_push
+        }
+        if entries.count != before { try? writeToDisk() }
+    }
+
     // MARK: Push-flow mutators
 
     /// Mark an entry as pending push (call right after `append` when credentials exist).

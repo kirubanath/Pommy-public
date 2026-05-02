@@ -31,6 +31,9 @@ struct NotionSettings: View {
                    let url = URL(string: creds.page_url) {
                     openTrackerCard(url: url)
                 }
+                if appState.credentials != nil {
+                    syncCard
+                }
                 deviceCard
                 if appState.credentials != nil {
                     disconnectCard
@@ -282,6 +285,31 @@ struct NotionSettings: View {
         .frame(minWidth: 300)
     }
 
+    // MARK: - Sync card
+
+    private var syncCard: some View {
+        @Bindable var config = appState.config
+        return PommySectionCard("Sync") {
+            PommySettingsRow("Auto-sync") {
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { config.notionSyncEnabled },
+                        set: { enabled in
+                            config.notionSyncEnabled = enabled
+                            appState.saveConfig()
+                            if enabled, let creds = appState.credentials {
+                                Task { await appState.syncNotionStats(creds: creds) }
+                            }
+                        }
+                    )
+                )
+                .labelsHidden()
+                .toggleStyle(.switch)
+            }
+        }
+    }
+
     // MARK: - Disconnect card
 
     private var disconnectCard: some View {
@@ -310,9 +338,11 @@ struct NotionSettings: View {
 
     private func disconnectNotion() {
         try? NotionCredentialsStore.clear()
-        appState.credentials     = nil
-        appState.notionSyncStatus = .idle
-        appState.notionStats     = nil
+        appState.credentials          = nil
+        appState.notionSyncStatus     = .idle
+        appState.notionStats          = nil
+        appState.config.notionSyncEnabled = true
+        appState.saveConfig()
         token        = ""
         databaseLink = ""
         databaseID   = ""

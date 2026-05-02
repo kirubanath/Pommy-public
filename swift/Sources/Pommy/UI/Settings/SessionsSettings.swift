@@ -46,6 +46,15 @@ struct SessionsSettings: View {
                 )
             }
             PommyRowDivider()
+            PommySettingsRow("Min. to log") {
+                EditableStepper(
+                    value: $config.minSessionMinutes,
+                    range: 0...60,
+                    unit: "min",
+                    onCommit: { appState.saveConfig() }
+                )
+            }
+            PommyRowDivider()
             PommySettingsRow("Overflow warning") {
                 Toggle(
                     "",
