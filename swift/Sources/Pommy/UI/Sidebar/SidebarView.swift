@@ -26,8 +26,10 @@ struct SidebarView: View {
 
             Spacer()
 
-            syncButton
-                .padding(.bottom, 8)
+            if appState.credentials != nil {
+                syncButton
+                    .padding(.bottom, 8)
+            }
 
             pageButton(.settings)
                 .padding(.bottom, 8)
@@ -103,8 +105,7 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .pommyPress(hoverScale: 1.04, pressScale: 0.94)
         .help(syncHelp)
-        .opacity(appState.credentials == nil ? 0.3 : 1)
-        .disabled(appState.credentials == nil || appState.notionSyncStatus == .syncing)
+        .disabled(appState.notionSyncStatus == .syncing)
     }
 
     private var syncIconColor: Color {
@@ -171,7 +172,7 @@ struct SidebarView: View {
         case .syncing:       return "Syncing…"
         case .synced:        return "Synced"
         case .failed(let m): return "Sync failed: \(m)"
-        default:             return appState.credentials == nil ? "Hook up Notion first (Settings → Notion)" : "Push to Notion"
+        default:             return "Sync with Notion"
         }
     }
 }

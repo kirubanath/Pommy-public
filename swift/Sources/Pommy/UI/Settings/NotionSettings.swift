@@ -12,9 +12,10 @@ struct NotionSettings: View {
     @State private var editingDatabaseLink: Bool = false
     @State private var editBuffer:          String = ""
 
-    @State private var validating:       Bool    = false
-    @State private var validationResult: String? = nil
-    @State private var isValid:          Bool    = false
+    @State private var validating:          Bool    = false
+    @State private var validationResult:   String? = nil
+    @State private var isValid:            Bool    = false
+    @State private var showDisconnectAlert: Bool   = false
 
     private var isConnected: Bool { appState.credentials != nil && isValid }
     private var canValidate:  Bool { !token.isEmpty && !databaseID.isEmpty && !validating }
@@ -31,12 +32,21 @@ struct NotionSettings: View {
                     openTrackerCard(url: url)
                 }
                 deviceCard
+                if appState.credentials != nil {
+                    disconnectCard
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onAppear { loadCredentials() }
+        .alert("Disconnect Notion?", isPresented: $showDisconnectAlert) {
+            Button("Disconnect", role: .destructive) { disconnectNotion() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your local sessions are safe. Pommy will stop syncing to Notion.")
+        }
     }
 
     // MARK: - Status banner
@@ -272,7 +282,43 @@ struct NotionSettings: View {
         .frame(minWidth: 300)
     }
 
+    // MARK: - Disconnect card
+
+    private var disconnectCard: some View {
+        PommySectionCard {
+            Button {
+                showDisconnectAlert = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "minus.circle")
+                        .font(.system(size: 12))
+                    Text("Disconnect Notion")
+                        .font(.system(size: 13))
+                    Spacer()
+                }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .pommyPress(hoverScale: 1.0, pressScale: 0.99)
+        }
+    }
+
     // MARK: - Logic
+
+    private func disconnectNotion() {
+        try? NotionCredentialsStore.clear()
+        appState.credentials     = nil
+        appState.notionSyncStatus = .idle
+        appState.notionStats     = nil
+        token        = ""
+        databaseLink = ""
+        databaseID   = ""
+        validationResult = nil
+        isValid          = false
+    }
 
     private func loadCredentials() {
         guard let creds = appState.credentials else { return }

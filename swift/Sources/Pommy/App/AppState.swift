@@ -194,6 +194,9 @@ final class AppState {
     func setMainWindowKey(_ isKey: Bool) {
         isMainWindowKey = isKey
         handleActivityModeTransition()
+        if isKey, let creds = credentials, notionSyncStatus != .syncing {
+            Task { await syncNotionStats(creds: creds) }
+        }
     }
 
     private func startSystemFeedback() {
@@ -260,7 +263,7 @@ final class AppState {
             durationMins: session.durationMins,
             overflowMins: session.overflowMins,
             notes:        combinedNotes,
-            pendingPush:  credentials != nil
+            pendingPush:  true
         )
 
         do { try sessionLog.append(entry) } catch {}

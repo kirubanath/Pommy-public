@@ -263,7 +263,6 @@ struct NotionClient {
         schema: NotionSchema,
         values: [String: Any]
     ) -> [String: Any] {
-        let tz = schema.timezone
         var props: [String: Any] = [:]
 
         for (key, field) in schema.fields {
@@ -280,13 +279,14 @@ struct NotionClient {
                 props[name] = ["select": ["name": text]]
 
             case "date":
+                let localTZ = TimeZone.current.identifier
                 let iso: String
                 if let date = value as? Date {
-                    iso = isoDateTimeString(from: date, timezone: tz)
+                    iso = isoDateTimeString(from: date, timezone: localTZ)
                 } else {
                     iso = (value as? String) ?? ""
                 }
-                props[name] = ["date": ["start": iso, "time_zone": tz]]
+                props[name] = ["date": ["start": iso, "time_zone": localTZ]]
 
             case "number":
                 props[name] = ["number": value]
