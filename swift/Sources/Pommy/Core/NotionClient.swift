@@ -329,9 +329,12 @@ struct NotionClient {
     }
 
     private static func isoDateTimeString(from date: Date, timezone: String) -> String {
-        let f        = ISO8601DateFormatter()
+        // Notion requires local time WITHOUT a UTC offset when time_zone is provided separately.
+        // ISO8601DateFormatter with .withInternetDateTime emits "+05:30" which Notion rejects (400).
+        let f        = DateFormatter()
         f.timeZone   = TimeZone(identifier: timezone) ?? .current
-        f.formatOptions = [.withInternetDateTime]
+        f.locale     = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         return f.string(from: date)
     }
 
