@@ -60,6 +60,8 @@ private struct ConfigPayload: Codable {
     var streak_min_minutes:     Int?
     var weekly_focus_target_mins: Int?
     var daily_focus_target_mins: Int?
+    var per_day_goals_enabled:  Bool?
+    var daily_focus_target_by_weekday: [String: Int]?  // "1"=Sun … "7"=Sat
     var dial_max_minutes:       Int?
     var breathe_before_focus:  Bool?
     var breath_cycles:         Int?
@@ -120,6 +122,17 @@ final class Config {
     /// Target daily focus time in minutes — drives the Pommy-sleeps choreography
     /// and the "Goal complete" indicator in the Today header. Default 4h.
     var dailyFocusTargetMins:  Int        = 240
+    /// When true, per-weekday overrides in `dailyFocusTargetByWeekday` take precedence.
+    var perDayGoalsEnabled:    Bool       = false
+    /// Per-weekday target overrides. Key = Calendar.weekday (1=Sun … 7=Sat).
+    var dailyFocusTargetByWeekday: [Int: Int] = [:]
+
+    /// Today's effective daily target: per-day override when enabled, else the flat default.
+    var effectiveDailyFocusTargetMins: Int {
+        guard perDayGoalsEnabled else { return dailyFocusTargetMins }
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        return dailyFocusTargetByWeekday[weekday] ?? dailyFocusTargetMins
+    }
     /// Max minutes a single revolution of the dial represents. Restricted in
     /// settings to 60 / 120 / 180 / 240 so the geometry stays sane.
     var dialMaxMinutes:        Int        = 120
@@ -166,6 +179,12 @@ final class Config {
         streakMinMinutes      = p.streak_min_minutes        ?? 25
         weeklyFocusTargetMins = p.weekly_focus_target_mins  ?? 1200
         dailyFocusTargetMins  = p.daily_focus_target_mins   ?? 240
+        perDayGoalsEnabled    = p.per_day_goals_enabled     ?? false
+        dailyFocusTargetByWeekday = Dictionary(
+            uniqueKeysWithValues: (p.daily_focus_target_by_weekday ?? [:]).compactMap { k, v in
+                Int(k).map { ($0, v) }
+            }
+        )
         dialMaxMinutes        = p.dial_max_minutes          ?? 120
 
         breatheBeforeFocus  = p.breathe_before_focus  ?? false
@@ -200,6 +219,10 @@ final class Config {
             streak_min_minutes:        streakMinMinutes,
             weekly_focus_target_mins:  weeklyFocusTargetMins,
             daily_focus_target_mins:   dailyFocusTargetMins,
+            per_day_goals_enabled:     perDayGoalsEnabled,
+            daily_focus_target_by_weekday: Dictionary(
+                uniqueKeysWithValues: dailyFocusTargetByWeekday.map { ("\($0.key)", $0.value) }
+            ),
             dial_max_minutes:          dialMaxMinutes,
             breathe_before_focus:    breatheBeforeFocus,
             breath_cycles:           breathCycles,

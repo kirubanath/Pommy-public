@@ -122,7 +122,7 @@ struct StatsView: View {
     }
 
     private var dailyGoalMet: Bool {
-        let target = appState.config.dailyFocusTargetMins
+        let target = appState.config.effectiveDailyFocusTargetMins
         return target > 0 && todayFocusMinutes >= target
     }
 

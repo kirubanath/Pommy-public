@@ -173,6 +173,17 @@ struct SessionsSettings: View {
                 )
             }
             PommyRowDivider()
+            PommySettingsRow("Per-day goals") {
+                Toggle("", isOn: $config.perDayGoalsEnabled)
+                    .labelsHidden()
+                    .onChange(of: config.perDayGoalsEnabled) { _, _ in
+                        appState.saveConfig()
+                    }
+            }
+            if config.perDayGoalsEnabled {
+                perDayGoalRows(config: config)
+            }
+            PommyRowDivider()
             PommySettingsRow("Weekly target") {
                 EditableStepper(
                     value: Binding(
@@ -180,6 +191,29 @@ struct SessionsSettings: View {
                         set: { config.weeklyFocusTargetMins = $0 * 60 }
                     ),
                     range: 5...60,
+                    unit: "h",
+                    onCommit: { appState.saveConfig() }
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func perDayGoalRows(config: Config) -> some View {
+        // Calendar.weekday: 1=Sun, 2=Mon … 7=Sat
+        let days: [(Int, String)] = [
+            (2, "Monday"), (3, "Tuesday"), (4, "Wednesday"),
+            (5, "Thursday"), (6, "Friday"), (7, "Saturday"), (1, "Sunday")
+        ]
+        ForEach(days, id: \.0) { weekday, label in
+            PommyRowDivider()
+            PommySettingsRow(label) {
+                EditableStepper(
+                    value: Binding(
+                        get: { (config.dailyFocusTargetByWeekday[weekday] ?? config.dailyFocusTargetMins) / 60 },
+                        set: { config.dailyFocusTargetByWeekday[weekday] = $0 * 60 }
+                    ),
+                    range: 1...12,
                     unit: "h",
                     onCommit: { appState.saveConfig() }
                 )
